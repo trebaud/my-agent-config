@@ -1,0 +1,93 @@
+{
+  "skill_name": "condense",
+  "evals": [
+    {
+      "id": 0,
+      "name": "wordy-corporate-email",
+      "prompt": "Make this shorter:\n\nIt's worth noting that, at this point in time, the team has made the decision to go ahead and postpone the launch of the new feature until such time as we are able to successfully complete the additional round of testing that is currently being requested by the QA department. The reason for this decision is due to the fact that there are a number of bugs that were discovered by the testers during the course of the last sprint, and it is important that these bugs are resolved prior to us shipping to our customers. We will provide you with an update in the near future.",
+      "expected_output": "A noticeably shorter version (roughly half the words) that keeps every fact: launch postponed until QA testing is complete, the reason is bugs found by testers last sprint that must be fixed before shipping, and an update is coming soon. No new ideas added; register stays professional.",
+      "files": [],
+      "assertions": [
+        "Cuts word count by at least 40%",
+        "Preserves fact: launch postponed",
+        "Preserves fact: bugs found / to fix",
+        "Preserves fact: discovered last sprint",
+        "Preserves fact: update coming soon",
+        "Removes throat-clearing filler (no 'It's worth noting', 'at this point in time', 'due to the fact that', 'until such time as', 'in the near future')"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "technical-doc-preserve-facts",
+      "prompt": "This is too wordy, tighten it up:\n\nThe caching layer that we have implemented is responsible for storing the results of database queries in memory in order to reduce the load that is placed on the primary database. In the event that a query is requested that has already been cached, the system has the ability to return the result in approximately 5 milliseconds, which is a significant improvement when compared to the 200 milliseconds that it takes to execute the query against the database directly. For more information regarding the configuration options, please refer to the documentation that is available at https://docs.example.com/caching.",
+      "expected_output": "A tighter version that preserves both numbers (5 ms and 200 ms), the URL https://docs.example.com/caching intact, and the meaning (cache stores query results in memory to reduce primary-DB load; cached reads are far faster). Should cut wordy phrases like 'is responsible for', 'in order to', 'in the event that', 'has the ability to'.",
+      "files": [],
+      "assertions": [
+        "Cuts word count by at least 35%",
+        "Preserves both latency numbers (5 / 200)",
+        "Preserves the docs URL https://docs.example.com/caching intact",
+        "Preserves fact: results stored in memory",
+        "Removes wordy phrases ('is responsible for', 'in order to', 'in the event that', 'has the ability to')"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "rambling-llm-output",
+      "prompt": "Cut the fluff from this:\n\nBasically, when it comes to writing good unit tests, there are a number of different things that you really need to keep in mind. First and foremost, it is absolutely essential that each and every test should ideally be focused on testing just one single thing and one thing only. Additionally, in order to make your tests more maintainable over the long term, you should really try your best to make sure that you are giving your tests names that are descriptive and clear. Last but not least, at the end of the day, tests that are flaky and unreliable are honestly worse than having no tests at all, so it is very important to do everything you can to avoid them.",
+      "expected_output": "A much shorter version that keeps the three points: each test should check one thing, give tests descriptive/clear names, and avoid flaky tests (which are worse than no tests). Filler like 'Basically', 'First and foremost', 'at the end of the day', 'really', 'absolutely essential' should be gone.",
+      "files": [],
+      "assertions": [
+        "Cuts word count by at least 50%",
+        "Preserves fact: test one thing",
+        "Preserves fact: descriptive names",
+        "Preserves fact: avoid flaky tests",
+        "Removes filler openers ('Basically', 'First and foremost', 'at the end of the day', 'absolutely essential')"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "buried-qualifiers-policy",
+      "prompt": "Make this shorter:\n\nIt is important for all of our customers to be aware of the fact that, generally speaking, refund requests can only be submitted within 30 days of the original purchase date, and it should also be noted that refunds are only available for orders that total at least $50, with the single exception of digital products, which are not eligible for any refund whatsoever once they have been downloaded. Furthermore, please be aware that, in most but not all cases, the refund will be processed back to the original payment method within a period of up to 10 business days, although customers who paid via bank transfer may need to wait somewhat longer than that. Refunds will not be issued under any circumstances if the item shows signs of having been used.",
+      "expected_output": "A much shorter version that keeps EVERY load-bearing qualifier: refunds only within 30 days; only for orders of at least $50; digital products are NOT eligible once downloaded (the exception); processed in up to 10 business days; bank-transfer payers may wait longer; no refund if the item shows signs of use. Dropping any of 'only', 'at least', 'up to', 'except/exception', 'not', or 'may' would change the policy and is a failure.",
+      "files": [],
+      "assertions": [
+        "Cuts word count by at least 35%",
+        "Preserves the 30-day window",
+        "Preserves the $50 minimum AND the 'at least' qualifier",
+        "Preserves the digital-products exception (not eligible once downloaded)",
+        "Preserves the 'up to 10 business days' processing window (not flattened to a flat '10 days')",
+        "Preserves the bank-transfer caveat (may wait longer)",
+        "Preserves the used-item exclusion (no refund if signs of use)"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "negations-and-conditionals-auth",
+      "prompt": "This is too wordy, tighten it up:\n\nIn terms of the way that the authentication middleware actually works under the hood, what happens is that the middleware will reject any incoming request that does not include a valid bearer token in the Authorization header, unless the requested route has specifically been added to the public allowlist. It is worth mentioning that tokens are considered to be valid for a duration of exactly 60 minutes, after which point they must be refreshed, and it is critically important to understand that the refresh endpoint itself will not accept an access token that has already expired — instead, it requires the separate refresh token that was issued at login. Do note that if the ALLOW_INSECURE flag is set to true, none of these checks will be enforced, but this should never be enabled in production.",
+      "expected_output": "A tighter version that preserves every condition and negation: requests without a valid bearer token in the Authorization header are rejected UNLESS the route is on the public allowlist; tokens are valid for exactly 60 minutes then must be refreshed; the refresh endpoint will NOT accept an expired access token and instead needs the separate refresh token from login; if ALLOW_INSECURE is true the checks are skipped, and it should never be enabled in production. Identifiers (Authorization, ALLOW_INSECURE) must stay verbatim. Dropping 'unless', 'not', 'never', or 'must' is a meaning-flipping failure.",
+      "files": [],
+      "assertions": [
+        "Cuts word count by at least 35%",
+        "Preserves the 'unless ... allowlist' exception for the bearer-token check",
+        "Preserves the exact 60-minute validity and the 'must refresh' requirement",
+        "Preserves that the refresh endpoint does NOT accept an expired access token and needs the refresh token",
+        "Preserves the ALLOW_INSECURE behavior AND the 'never in production' warning",
+        "Keeps identifiers verbatim: 'Authorization' and 'ALLOW_INSECURE'"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "buried-lede-with-data",
+      "prompt": "Cut the fluff from this:\n\nSo I wanted to take a moment to write up some thoughts following the meeting that we had earlier this week regarding the performance issues that a number of our users have been experiencing. As many of you are no doubt already aware, this has been a topic of considerable discussion for quite some time now, and there have been a wide variety of different opinions expressed about what the best path forward might be. After looking very carefully at all of the data that we have available to us, and after giving the matter a great deal of careful thought and consideration, I have come to the conclusion that the single biggest contributor to the slowdown is the fact that we are currently making three separate database calls on every single page load, which together account for roughly 70% of the total page load time. My recommendation, therefore, is that we should prioritize combining these into a single batched query in the next sprint.",
+      "expected_output": "A much shorter version that front-loads the actual point and keeps the specifics: the biggest contributor to the slowdown is three separate database calls on every page load, which account for roughly 70% of total page load time; the recommendation is to combine them into a single batched query next sprint. The meeting/discussion throat-clearing should be cut. The '70%', 'three' calls, and 'batched query next sprint' must survive.",
+      "files": [],
+      "assertions": [
+        "Cuts word count by at least 55%",
+        "Preserves the '70%' figure",
+        "Preserves the 'three database calls on every page load' diagnosis",
+        "Preserves the recommendation: combine into a single batched query next sprint",
+        "Removes the throat-clearing wind-up (no 'I wanted to take a moment', 'as many of you are aware', 'considerable discussion')"
+      ]
+    }
+  ]
+}

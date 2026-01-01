@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<!--
+  PR WALKTHROUGH TEMPLATE
+  =======================
+  Visualizes the REVIEW JOURNEY (not the PR itself — that's pr-visualizer).
+  1. Fill <title>, the hero, the trust-flow map, and the ordered STOPS in <main>.
+  2. Stops are ordered by call depth: entry point / trust boundary first, then
+     down the call graph into business logic. Group stops under their entry point.
+  3. Each stop has a checkbox — ticking it updates the progress bar and persists
+     to localStorage (keyed by PR id in <body data-pr="...">). This is the point:
+     the reviewer walks the page top-to-bottom and checks off as they go.
+     Flag (⚑) and note (✎) controls are injected into every stop automatically —
+     author nothing per stop. Flags/notes persist too, mirror onto the map as
+     badges, fill the final-checks #flagged list, and export via #copyreview.
+  4. Copy component markup from the COMPONENTS LIBRARY comment at the bottom.
+  5. Self-contained: no external CSS/JS/fonts/images. Must open offline.
+  6. LINK every location to GitHub so a click jumps to the exact line. Build the
+     base once from the PR head repo + head commit sha, then append the path+line:
+       LINE : https://github.com/<owner>/<repo>/blob/<headSha>/<path>#L<line>
+       PR   : https://github.com/<owner>/<repo>/pull/<n>
+     Use the head commit sha (not a branch name) so links survive force-pushes.
+     Every <a class="loc">, entry-point title, and skim entry points into GitHub.
+  7. EVERY stop card MUST contain a .diff block with the COMPLETE hunk(s) for
+     that stop, verbatim from the real diff. An optional .pseudo block may
+     summarize the change above the diff — it accompanies the diff, never
+     replaces it. Long hunks scroll inside the .diff box; do not truncate them.
+  8. Map nodes are clickable: give each .gnode a data-target="<element-id>"
+     pointing at the id of its entry-point group or stop (e.g. id="ep-route",
+     id="stop-1"), and give those elements matching ids. Clicking a node
+     scrolls to that section and flashes it (wired automatically). Nodes whose
+     data-target is a stop id also get a live ✓ (reviewed) / ⚑ (flagged) badge
+     as the reviewer works — prefer stop ids as targets where sensible.
+  9. The FINAL CHECKS component's #flagged container and #copyreview button are
+     REQUIRED — JS auto-fills them from the reviewer's flags/notes and copies
+     a markdown review draft. Include them verbatim; leave the list empty.
+  10. PLAIN LANGUAGE: all page copy must be plain, direct English that an
+     international audience gets instantly. Say "key change", not "linchpin";
+     "final checks", not "closeout". No rare idioms or clever labels.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{PR TITLE}} — review walkthrough</title>
+<style>
+  :root{
+    --bg:#0f1117; --bg2:#161922; --panel:#1c2030; --panel2:#232838;
+    --line:#2c3245; --txt:#e7eaf3; --muted:#9aa3bd; --faint:#6b7494;
+    --indigo:#7c8cff; --indigo2:#5566f0; --violet:#b98bff;
+    --green:#46d6a0; --amber:#ffb454; --red:#ff6b81; --cyan:#5bd6e6;
+    --radius:14px; --maxw:960px;
+    --mono:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 75% -10%,#1d2236 0%,var(--bg) 55%);color:var(--txt);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+
+  /* light theme — toggled by the nav button, persisted in localStorage.
+     The trust-flow map, diff, and pseudo blocks stay dark on purpose. */
+  body.light{
+    --bg:#f3f5f9; --bg2:#fff; --panel:#fff; --panel2:#eef1f7;
+    --line:#d9deea; --txt:#1d2331; --muted:#525b73; --faint:#7c86a0;
+    --indigo:#4353d9; --indigo2:#4353d9; --violet:#7a3ff2;
+    --green:#0c8f66; --amber:#a96412; --red:#d43852; --cyan:#0b7c92;
+    background:radial-gradient(1200px 600px at 75% -10%,#e7ebf7 0%,var(--bg) 55%);
+  }
+  body.light nav{background:rgba(246,248,252,.85)}
+  body.light h1{background:linear-gradient(120deg,#1d2331,#4353d9);-webkit-background-clip:text;background-clip:text}
+  body.light code{background:#eef1f7;border-color:#d9deea;color:#3a415a}
+  body.light .chip.amber{background:#fdf3e3;border-color:#ecd9b0}
+  body.light .chip.green{background:#e7f7f0;border-color:#bfe6d6}
+  body.light .epbadge{background:#fdeaee;color:#c22b4a;border-color:#f2c7d1}
+  body.light .stop{background:#fff}
+  body.light .stop.crit{border-color:#e4c98d}
+  body.light .stop.flagged{border-color:#eeb7c3}
+  body.light .stop > .cbx{background:#f2f4fa;border-color:#cfd5e4}
+  body.light .stop.done > .cbx{background:#e7f7f0;border-color:#bfe6d6}
+  body.light .pill{background:#fdf3e3;color:#a96412}
+  body.light ul.checks li{background:#f6f8fc;border-color:#e3e7f1}
+  body.light .tag.input{background:#fdeaee;color:#c22b4a}
+  body.light .tag.authz{background:#fdf3e3;color:#a96412}
+  body.light .tag.edge{background:#e4f4f8;color:#0b7c92}
+  body.light .tag.logic{background:#efe8fd;color:#7a3ff2}
+  body.light .sfoot button{background:#f2f4fa;border-color:#cfd5e4}
+  body.light .sfoot .flg.on{background:#fdeaee;color:#c22b4a;border-color:#f2c7d1}
+  body.light textarea.note{background:#fff;border-color:#cfd5e4}
+  body.light .callout{background:#fdf6e9;border-color:#ecd9b0}
+  body.light .verdict{background:#e7f7f0;border-color:#bfe6d6;color:#0c8f66}
+  body.light .skim{background:#fff}
+  a{color:var(--indigo);text-decoration:none}
+  code{font-family:var(--mono);font-size:.86em;background:#0c0e15;border:1px solid var(--line);padding:.1em .4em;border-radius:6px;color:#cdd6f4}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  /* progress nav */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rgba(15,17,23,.82);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;gap:12px;height:56px}
+  nav .brand{font-weight:700;display:flex;align-items:center;gap:10px;white-space:nowrap}
+  nav .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--indigo);box-shadow:0 0 14px var(--indigo)}
+  .pbar{flex:1;height:8px;border-radius:99px;background:var(--panel);overflow:hidden;display:flex}
+  .pbar > i{display:block;height:100%;width:0;transition:width .3s}
+  #pflag{background:linear-gradient(90deg,#d14a63,var(--red))}
+  #pfill{background:linear-gradient(90deg,var(--indigo2),var(--green))}
+  .pcount{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+  #pflagwrap{color:#ff8a9b}
+  .reset{font-size:12px;color:var(--faint);cursor:pointer;background:none;border:0;font-family:inherit}
+  .reset:hover{color:var(--txt)}
+
+  header.hero{padding:56px 0 24px}
+  .kick{color:var(--violet);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px}
+  h1{font-size:38px;line-height:1.12;margin:10px 0 14px;font-weight:800;background:linear-gradient(120deg,#fff,#aeb8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:var(--muted);font-size:16px;max-width:720px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  .chip{font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel)}
+  .chip b{color:var(--indigo)}
+  .chip.amber{border-color:#5a431f;background:#241b0e;color:var(--amber)}
+  .chip.green{border-color:#1f4a39;background:#0e211a;color:var(--green)}
+
+  section{padding:36px 0;border-top:1px solid var(--line)}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 6px}
+  .h2title{font-size:24px;font-weight:750;margin:0 0 16px}
+  .sub{color:var(--muted);max-width:760px;margin:-6px 0 20px}
+
+  /* trust-flow map (SVG) */
+  .gwrap{background:radial-gradient(700px 300px at 50% 0,#13182a,#0c0e15);border:1px solid #2c3245;border-radius:var(--radius);padding:14px;overflow-x:auto}
+  .gwrap svg{width:100%;height:auto;display:block;min-width:640px}
+  .gnode{transition:opacity .18s;cursor:pointer} .gnode rect{transition:filter .18s}
+  .gnode .nt{font-weight:750;font-size:13px;fill:#e7eaf3}
+  .gnode .ns{font-size:10.5px;fill:#9aa3bd;font-family:var(--mono)}
+  .gedge{transition:opacity .18s} .gedge text{font-family:var(--mono);fill:#6b7494;font-size:10px}
+  svg.hovering .gnode:not(.hot){opacity:.22} svg.hovering .gedge:not(.hot){opacity:.1}
+  .hot rect{filter:drop-shadow(0 0 9px currentColor)}
+  /* live review-state badges on map nodes (JS-injected) */
+  .nbadge circle{stroke-width:1.5}
+  .nbadge text{font-size:10px;font-weight:800}
+  .gnode.ndone > rect,.gnode.ndone .nt,.gnode.ndone .ns{opacity:.5}
+  .boundary{stroke:#ff6b81;stroke-width:1.5;stroke-dasharray:6 5;fill:rgba(255,107,129,.05)}
+  .glegend{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;font-size:12.5px;color:var(--muted)}
+  .glegend span{display:inline-flex;align-items:center;gap:7px}
+  .glegend .sw{width:12px;height:12px;border-radius:4px;border:1px solid;display:inline-block}
+  .hint{font-size:12px;color:var(--faint);margin-top:8px}
+
+  /* entry-point group heading */
+  .epgroup{margin:26px 0 4px;display:flex;align-items:center;gap:10px}
+  /* click-to-jump targets: clear the sticky nav, flash on arrival */
+  .epgroup,.stop{scroll-margin-top:72px}
+  @keyframes flashTarget{0%{box-shadow:0 0 0 2px var(--indigo),0 0 24px rgba(124,140,255,.45)}100%{box-shadow:none}}
+  .stop.flash{animation:flashTarget 1.6s ease-out}
+  .epgroup.flash a.eptitle{animation:flashTarget 1.6s ease-out;border-radius:6px}
+  .epgroup .epbadge{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:6px;background:#2a1318;color:#ff8a9b;border:1px solid #5a2331}
+  .epgroup a.eptitle{font-family:var(--mono);font-size:14px;color:var(--txt);border-bottom:1px dotted transparent}
+  .epgroup a.eptitle:hover{border-bottom-color:var(--faint)}
+  .epgroup .epwhat{color:var(--faint);font-size:12.5px}
+
+  /* stop card */
+  .stop{position:relative;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--radius);padding:16px 16px 16px 52px;margin:12px 0;transition:.18s}
+  .stop.done{opacity:.55}
+  .stop.done .st{text-decoration:line-through;text-decoration-color:var(--faint)}
+  .stop.crit{border-color:#5a431f}
+  .stop.flagged{border-color:#5a2331}
+  .stop.flagged.done{opacity:.85}
+  .stop.flagged.done .st{text-decoration:none}
+  .stop > .cbx{position:absolute;left:15px;top:16px;width:24px;height:24px;border-radius:7px;border:1.5px solid var(--line);background:var(--panel2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:transparent;font-weight:800;font-size:15px;transition:.15s}
+  .stop.done > .cbx{background:#0e211a;border-color:#1f4a39;color:var(--green)}
+  .stop .num{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .stop .st{font-weight:700;font-size:15.5px;margin:2px 0 2px}
+  a.loc{font-family:var(--mono);font-size:12px;color:var(--cyan);word-break:break-all;border-bottom:1px dotted transparent}
+  a.loc:hover{border-bottom-color:var(--cyan)}
+  a.loc .arw{color:var(--faint);font-size:11px}
+  .stop .depth{display:inline-block;font-size:10px;font-weight:700;color:var(--faint);border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin-left:8px;vertical-align:middle}
+  .stop .why{color:var(--muted);font-size:13.5px;margin:8px 0 0}
+  .stop .why b{color:var(--txt)}
+  .stop .pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:5px;margin-left:8px;background:#5a431f;color:#ffd9a0}
+  /* what-to-check list, trust-tagged */
+  ul.checks{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:8px}
+  ul.checks li{display:flex;gap:9px;font-size:13.5px;background:#0c0e15;border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+  ul.checks li .tag{flex:0 0 auto;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:5px;height:fit-content;margin-top:1px}
+  .tag.input{background:#2a1318;color:#ff8a9b} .tag.authz{background:#2a2110;color:var(--amber)}
+  .tag.edge{background:#1a2740;color:var(--cyan)} .tag.logic{background:#211a36;color:var(--violet)}
+  /* diff block — REQUIRED on every stop: the complete hunk(s), verbatim.
+     Long hunks scroll inside the box; never truncate. */
+  .diff{font-family:var(--mono);font-size:12px;background:#0c0e15;border:1px solid #2c3245;border-radius:9px;padding:11px 13px;margin-top:11px;overflow:auto;max-height:440px;white-space:pre;line-height:1.5;color:#cdd6f4}
+  .diff .add{color:#46d6a0} .diff .del{color:#ff6b81} .diff .ctx{color:#6b7494}
+  .diff .hunk{color:#5bd6e6;opacity:.75}
+  /* optional pseudo-code summary — accompanies the diff, never replaces it */
+  .pseudo{font-family:var(--mono);font-size:12px;color:#b98bff;background:#13101f;border:1px solid #2b2344;border-left:3px solid #b98bff;border-radius:9px;padding:9px 13px;margin-top:11px;white-space:pre;overflow-x:auto;line-height:1.5}
+  .pseudo::before{content:"pseudo · what this does";display:block;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7494;margin-bottom:6px}
+
+  /* flag + note controls (JS-injected into every stop) */
+  .sfoot{display:flex;gap:8px;margin-top:12px}
+  .sfoot button{font-family:inherit;font-size:11.5px;font-weight:700;color:var(--faint);background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:4px 10px;cursor:pointer;transition:.15s}
+  .sfoot button:hover{color:var(--txt);border-color:var(--faint)}
+  .sfoot .flg.on{background:#2a1318;color:#ff8a9b;border-color:#5a2331}
+  textarea.note{width:100%;margin-top:10px;background:#0c0e15;border:1px solid var(--line);border-radius:9px;color:var(--txt);font-family:var(--sans);font-size:13px;padding:9px 11px;resize:vertical;min-height:54px}
+  textarea.note:focus{outline:none;border-color:var(--indigo)}
+
+  /* skim batch */
+  .skim{background:var(--panel);border:1px dashed var(--line);border-radius:11px;padding:14px 16px}
+  .skim .fp{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+
+  /* final checks */
+  .callout{display:flex;gap:14px;align-items:flex-start;border:1px solid #5a431f;background:linear-gradient(180deg,#241b0e,#1a140a);border-radius:var(--radius);padding:16px}
+  .callout .ic{font-size:22px;line-height:1}
+  ul.open{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px}
+  ul.open li{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px 12px;font-size:13.5px}
+  .verdict{margin-top:16px;padding:13px 16px;border-radius:12px;font-size:14px;font-weight:600;background:#0e211a;border:1px solid #1f4a39;color:var(--green)}
+  .flnote{color:var(--muted);font-size:12.5px;margin-top:4px;white-space:pre-wrap}
+  .copybtn{margin-top:16px;font-family:inherit;font-size:13px;font-weight:700;color:var(--txt);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 14px;cursor:pointer;transition:.15s}
+  .copybtn:hover{border-color:var(--indigo);color:var(--indigo)}
+
+  footer{padding:36px 0 70px;color:var(--faint);font-size:13px;border-top:1px solid var(--line)}
+</style>
+</head>
+<body data-pr="{{PR-ID-FOR-STORAGE}}">
+
+<nav><div class="wrap">
+  <div class="brand"><span class="dot"></span>{{SHORT TITLE}}</div>
+  <div class="pbar"><i id="pflag"></i><i id="pfill"></i></div>
+  <span class="pcount"><span id="pdone">0</span>/<span id="ptotal">0</span><span id="pflagwrap" hidden> · <b id="pflagn">0</b> ⚑</span></span>
+  <button class="reset" id="themetoggle" onclick="toggleTheme()" title="Switch between light and dark">☀ light</button>
+  <button class="reset" onclick="resetWalk()">reset</button>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="kick">{{REPO / AREA}} · review walkthrough</div>
+  <h1>{{TITLE}}</h1>
+  <p class="lede">{{ONE LINE: what this PR does + how the walk is ordered, e.g. "3 entry points, 9 stops, walked from the HTTP boundary down into billing logic."}}</p>
+  <div class="chips">
+    <span class="chip"><b>{{n}}</b> stops</span>
+    <span class="chip"><b>{{n}}</b> entry points</span>
+    <span class="chip amber">key change: {{file}}</span>
+    <a class="chip" href="https://github.com/{{owner}}/{{repo}}/pull/{{n}}" target="_blank" rel="noopener">View PR #{{n}} ↗</a>
+  </div>
+</div></header>
+
+<main>
+
+  <!-- TRUST-FLOW MAP — where untrusted input enters and how it flows down.
+       Entry points on the left inside the .boundary; business logic to the right. -->
+  <section id="map"><div class="wrap">
+    <h2>How to read this review</h2>
+    <div class="h2title">Trust-flow map</div>
+    <p class="sub">Input enters at the dashed boundary (left) and flows down the call graph into
+      business logic (right). We walk it in that order — meet each change where input lands, then
+      follow the calls it triggers.</p>
+    <!-- paste TRUST-FLOW MAP from components library -->
+  </div></section>
+
+  <!-- THE WALK — one <section> per entry point group, stops ordered by call depth. -->
+  <section id="walk"><div class="wrap">
+    <h2>The walk</h2>
+    <div class="h2title">Stops, in call order</div>
+    <p class="sub">Tick each stop as you review it. Progress saves in this browser.</p>
+
+    <!-- paste ENTRY-POINT GROUP + STOP CARDs from components library -->
+
+  </div></section>
+
+  <!-- SKIM — trivial/mechanical changes batched so they don't steal attention. -->
+  <section id="skim"><div class="wrap">
+    <h2>Skim, don't study</h2>
+    <div class="h2title">Mechanical changes</div>
+    <!-- paste SKIM BATCH -->
+  </div></section>
+
+  <!-- FINAL CHECKS -->
+  <section id="close"><div class="wrap">
+    <h2>Before you approve</h2>
+    <div class="h2title">Final checks</div>
+    <!-- paste FINAL CHECKS (key-change recap + open questions + flags/notes + verdict) -->
+  </div></section>
+
+</main>
+
+<footer><div class="wrap">
+  {{Provenance:}} <a href="https://github.com/{{owner}}/{{repo}}/pull/{{n}}" target="_blank" rel="noopener">PR #{{n}}</a>
+  · branch {{head}} → {{base}} · walkthrough generated from the diff at {{headSha short}}.
+</div></footer>
+
+<script>
+  // Theme — persisted globally (one preference across walkthroughs), defaults
+  // to the OS setting. Map/diff/pseudo panels stay dark in both themes.
+  const THEME_KEY = 'pr-walk-theme';
+  function applyTheme(t){
+    document.body.classList.toggle('light', t === 'light');
+    const b = document.getElementById('themetoggle');
+    if(b) b.textContent = t === 'light' ? '☾ dark' : '☀ light';
+  }
+  function toggleTheme(){
+    const t = document.body.classList.contains('light') ? 'dark' : 'light';
+    try{ localStorage.setItem(THEME_KEY, t); }catch(e){}
+    applyTheme(t);
+  }
+  let theme = 'dark';
+  try{
+    theme = localStorage.getItem(THEME_KEY) ||
+      (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  }catch(e){}
+  applyTheme(theme);
+
+  // Walk state — per stop: {done, flag, note}. Keyed by PR id + stop index.
+  // Flag (⚑) marks a concern (and implies reviewed); notes are free text.
+  // Both persist to localStorage and feed the final-checks list + "Copy review notes".
+  const KEY = 'pr-walk:' + (document.body.dataset.pr || 'default');
+  const stops = [...document.querySelectorAll('.stop')];
+  const total = stops.length;
+  document.getElementById('ptotal').textContent = total;
+  let state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e){}
+  stops.forEach((s,i)=>{ if (typeof state[i] === 'boolean') state[i] = {done: state[i]}; });
+  const st = i => state[i] || {};
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} };
+  const set = (i, patch) => { state[i] = Object.assign({}, st(i), patch); save(); render(); };
+
+  function jumpTo(t){
+    t.scrollIntoView({behavior:'smooth', block:'start'});
+    t.classList.remove('flash'); void t.offsetWidth; t.classList.add('flash');
+    setTimeout(()=>t.classList.remove('flash'), 1700);
+  }
+
+  // Flag + note controls are injected into every stop — nothing to author per stop.
+  stops.forEach((s,i)=>{
+    const foot = document.createElement('div'); foot.className = 'sfoot';
+    const flg = document.createElement('button'); flg.className = 'flg'; flg.textContent = '⚑ flag';
+    flg.title = 'Flag a concern (also marks the stop reviewed)';
+    const ntg = document.createElement('button'); ntg.className = 'ntg'; ntg.textContent = '✎ note';
+    ntg.title = 'Jot a review note — exported by “Copy review notes”';
+    foot.append(flg, ntg);
+    const ta = document.createElement('textarea'); ta.className = 'note'; ta.rows = 2;
+    ta.placeholder = 'Review note — saved in this browser; exported by “Copy review notes”.';
+    ta.value = st(i).note || ''; ta.hidden = !ta.value.trim();
+    s.append(foot, ta);
+    s.querySelector('.cbx').addEventListener('click', ()=> set(i, {done: !st(i).done}));
+    flg.addEventListener('click', ()=>{ const f = !st(i).flag; set(i, f ? {flag: true, done: true} : {flag: false}); });
+    ntg.addEventListener('click', ()=>{ ta.hidden = !ta.hidden; if(!ta.hidden) ta.focus(); });
+    ta.addEventListener('input', ()=>{ state[i] = Object.assign({}, st(i), {note: ta.value}); save(); renderFlagged(); });
+  });
+
+  // Mirror stop state onto the map: nodes whose data-target is a stop id get a live ✓/⚑ badge.
+  const nodeFor = {};
+  document.querySelectorAll('svg.depgraph .gnode[data-target]').forEach(n=>{ nodeFor[n.dataset.target] = n; });
+  function setBadge(n, kind){
+    n.classList.toggle('ndone', kind === 'done');
+    n.classList.toggle('nflag', kind === 'flag');
+    let b = n.querySelector('.nbadge');
+    if(!kind){ if(b) b.remove(); return; }
+    if(!b){
+      const r = n.querySelector('rect'); if(!r) return;
+      const x = parseFloat(r.getAttribute('x')) + parseFloat(r.getAttribute('width')) - 3;
+      const y = parseFloat(r.getAttribute('y')) + 3;
+      b = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      b.setAttribute('class', 'nbadge');
+      b.setAttribute('transform', 'translate(' + x + ',' + y + ')');
+      b.innerHTML = '<circle r="9"></circle><text text-anchor="middle" dy="3.5"></text>';
+      n.appendChild(b);
+    }
+    const flag = kind === 'flag';
+    b.querySelector('circle').setAttribute('fill', flag ? '#2a1318' : '#0e211a');
+    b.querySelector('circle').setAttribute('stroke', flag ? '#ff6b81' : '#46d6a0');
+    const t = b.querySelector('text');
+    t.textContent = flag ? '⚑' : '✓';
+    t.setAttribute('fill', flag ? '#ff8a9b' : '#46d6a0');
+  }
+
+  function stopMeta(s, i){
+    let title = '';
+    const stEl = s.querySelector('.st');
+    if(stEl){ const c = stEl.cloneNode(true); c.querySelectorAll('.pill').forEach(p=>p.remove()); title = c.textContent.replace(/\s+/g,' ').trim(); }
+    const num = ((s.querySelector('.num') || {}).textContent || ('STOP ' + (i+1))).replace(/\s+/g,' ').trim();
+    const loc = ((s.querySelector('a.loc') || {}).textContent || '').replace(/\s*↗\s*$/,'').trim();
+    return {title, num, loc};
+  }
+
+  // Final checks: auto-list flagged/noted stops (needs #flagged + #flaggedlist in the page).
+  function renderFlagged(){
+    const box = document.getElementById('flagged'); if(!box) return;
+    const ul = document.getElementById('flaggedlist'); ul.innerHTML = '';
+    stops.forEach((s,i)=>{
+      const v = st(i), note = (v.note || '').trim();
+      if(!v.flag && !note) return;
+      const m = stopMeta(s,i);
+      const li = document.createElement('li');
+      const a = document.createElement('a');
+      if(s.id) a.href = '#' + s.id;
+      a.textContent = (v.flag ? '⚑ ' : '✎ ') + m.num + ' — ' + m.title;
+      a.addEventListener('click', e=>{ e.preventDefault(); jumpTo(s); });
+      li.appendChild(a);
+      if(m.loc){ const c = document.createElement('code'); c.textContent = m.loc; c.style.marginLeft = '8px'; li.appendChild(c); }
+      if(note){ const d = document.createElement('div'); d.className = 'flnote'; d.textContent = note; li.appendChild(d); }
+      ul.appendChild(li);
+    });
+    box.hidden = ul.children.length === 0;
+  }
+
+  function render(){
+    let done = 0, flags = 0, ok = 0;
+    stops.forEach((s,i)=>{
+      const v = st(i);
+      s.classList.toggle('done', !!v.done);
+      s.classList.toggle('flagged', !!v.flag);
+      s.querySelector('.cbx').textContent = v.done ? '✓' : '';
+      const fb = s.querySelector('.flg');
+      if(fb){ fb.classList.toggle('on', !!v.flag); fb.textContent = v.flag ? '⚑ flagged' : '⚑ flag'; }
+      if(v.done) done++;
+      if(v.flag) flags++; else if(v.done) ok++;
+      if(s.id && nodeFor[s.id]) setBadge(nodeFor[s.id], v.flag ? 'flag' : v.done ? 'done' : '');
+    });
+    document.getElementById('pdone').textContent = done;
+    document.getElementById('pflag').style.width = total ? (flags/total*100)+'%' : '0';
+    document.getElementById('pfill').style.width = total ? (ok/total*100)+'%' : '0';
+    const fw = document.getElementById('pflagwrap');
+    if(fw){ fw.hidden = flags === 0; document.getElementById('pflagn').textContent = flags; }
+    renderFlagged();
+  }
+
+  function resetWalk(){
+    if(!confirm('Reset progress, flags, and notes for this walkthrough?')) return;
+    state = {}; try{ localStorage.removeItem(KEY); }catch(e){}
+    stops.forEach(s=>{ const ta = s.querySelector('textarea.note'); if(ta){ ta.value = ''; ta.hidden = true; } });
+    render();
+  }
+
+  // "Copy review notes" — flags + notes as markdown, ready for the GitHub review box.
+  function reviewMarkdown(){
+    const lines = [];
+    stops.forEach((s,i)=>{
+      const v = st(i), note = (v.note || '').trim();
+      if(!v.flag && !note) return;
+      const m = stopMeta(s,i);
+      lines.push('- ' + (v.flag ? '⚑ ' : '') + '**' + m.num + ' — ' + m.title + '**' + (m.loc ? ' (`' + m.loc + '`)' : ''));
+      if(note) note.split('\n').forEach(l=>lines.push('  > ' + l));
+    });
+    if(!lines.length) return '';
+    return '### Review notes — ' + document.title.replace(/ — review walkthrough$/,'') + '\n\n' + lines.join('\n') + '\n';
+  }
+  const copyBtn = document.getElementById('copyreview');
+  if(copyBtn){
+    const orig = copyBtn.textContent;
+    const flash = msg => { copyBtn.textContent = msg; setTimeout(()=>{ copyBtn.textContent = orig; }, 1800); };
+    copyBtn.addEventListener('click', ()=>{
+      const md = reviewMarkdown();
+      if(!md){ flash('nothing to copy — flag or note a stop first'); return; }
+      const fallback = () => {
+        const ta = document.createElement('textarea'); ta.value = md;
+        document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); flash('copied ✓'); }catch(e){ flash('copy failed'); }
+        ta.remove();
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(md).then(()=>flash('copied ✓'), fallback);
+      } else fallback();
+    });
+  }
+  render();
+  // Trust-flow map hover-isolate (same convention as pr-visualizer's depgraph).
+  // Click a node to jump to its review section: data-target="<id of .epgroup or .stop>".
+  document.querySelectorAll('svg.depgraph').forEach(svg=>{
+    const edges=[...svg.querySelectorAll('.gedge')], nodes=[...svg.querySelectorAll('.gnode')];
+    const clear=()=>{ svg.classList.remove('hovering'); [...edges,...nodes].forEach(el=>el.classList.remove('hot')); };
+    nodes.forEach(n=>{ const id=n.dataset.id;
+      n.addEventListener('mouseenter',()=>{ svg.classList.add('hovering'); n.classList.add('hot');
+        edges.forEach(e=>{ if(e.dataset.from===id||e.dataset.to===id){ e.classList.add('hot');
+          const other=e.dataset.from===id?e.dataset.to:e.dataset.from;
+          const on=nodes.find(x=>x.dataset.id===other); if(on) on.classList.add('hot'); }});});
+      n.addEventListener('mouseleave',clear);
+      n.addEventListener('click',()=>{
+        const t=document.getElementById(n.dataset.target||'');
+        if(t) jumpTo(t);
+      });
+    });
+  });
+</script>
+
+<!-- ============================================================================
+COMPONENTS LIBRARY — copy what you need into <main>. This block never renders.
+
+== TRUST-FLOW MAP ==
+   Entry points (untrusted input) sit inside the dashed .boundary rect on the left;
+   arrows flow right/down into business logic and data. Hover a node to isolate its path.
+   Node box ~150x56; center = (x+75, y+28). Colors: violet=entry, indigo=logic, green=db, red glow=boundary.
+   EVERY node gets data-target="<id>" of the .epgroup or .stop that reviews it —
+   clicking the node scrolls there. Match the ids you set on those elements below.
+<div class="gwrap">
+  <svg class="depgraph" viewBox="0 0 900 420" role="img" aria-label="Trust-flow map">
+    <defs>
+      <marker id="a-i" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7c8cff"/></marker>
+      <marker id="a-g" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#46d6a0"/></marker>
+    </defs>
+    <rect class="boundary" x="18" y="30" width="196" height="320" rx="12"/>
+    <text x="30" y="22" fill="#ff8a9b" font-size="11" font-weight="800" letter-spacing="1">TRUST BOUNDARY · untrusted input</text>
+    <g class="gedge" data-from="route" data-to="svc"><path d="M214,90 L330,90" stroke="#46507a" stroke-width="2" fill="none" marker-end="url(#a-i)"/></g>
+    <g class="gedge" data-from="svc" data-to="model"><path d="M405,120 L405,240" stroke="#46d6a0" stroke-width="2" fill="none" stroke-dasharray="2 4" marker-end="url(#a-g)"/><text x="412" y="185">write</text></g>
+    <g class="gnode" data-id="route" data-target="ep-order"><rect x="40"  y="62" width="150" height="56" rx="11" fill="#211a36" stroke="#b98bff" stroke-width="1.5" style="color:#b98bff"/><text class="nt" x="115" y="86" text-anchor="middle">POST /order</text><text class="ns" x="115" y="103" text-anchor="middle">http entry</text></g>
+    <g class="gnode" data-id="svc" data-target="stop-1"><rect x="330" y="62" width="150" height="56" rx="11" fill="#1a2040" stroke="#7c8cff" stroke-width="1.5" style="color:#7c8cff"/><text class="nt" x="405" y="86" text-anchor="middle">placeOrder()</text><text class="ns" x="405" y="103" text-anchor="middle">business logic</text></g>
+    <g class="gnode" data-id="model" data-target="stop-2"><rect x="330" y="240" width="150" height="56" rx="11" fill="#0f241b" stroke="#46d6a0" stroke-width="1.5" style="color:#46d6a0"/><text class="nt" x="405" y="264" text-anchor="middle">Order</text><text class="ns" x="405" y="281" text-anchor="middle">db</text></g>
+  </svg>
+</div>
+<div class="glegend">
+  <span><span class="sw" style="background:#211a36;border-color:#b98bff"></span> entry point</span>
+  <span><span class="sw" style="background:#1a2040;border-color:#7c8cff"></span> business logic</span>
+  <span><span class="sw" style="background:#0f241b;border-color:#46d6a0"></span> data / db</span>
+  <span><span class="sw" style="background:rgba(255,107,129,.08);border-color:#ff6b81"></span> trust boundary</span>
+</div>
+<div class="hint">Hover a node to trace its path · click it to jump to that review stop.</div>
+
+== ENTRY-POINT GROUP HEADING (start each group; eptitle links to the entry file:line) ==
+   id must match a map node's data-target so clicking the node jumps here.
+<div class="epgroup" id="ep-order">
+  <span class="epbadge">http entry</span>
+  <a class="eptitle" href="https://github.com/OWNER/REPO/blob/HEADSHA/src/routes/order.ts#L28" target="_blank" rel="noopener">POST /api/order</a>
+  <span class="epwhat">— accepts an order payload from an authenticated client</span>
+</div>
+
+== STOP CARD (add class "crit" for the key change) ==
+   depth label: "boundary" | "→ service" | "→→ domain" etc. Order stops shallow→deep.
+   what-to-check tags: input | authz | edge | logic.
+   .loc is a link to the exact GitHub line: blob/HEADSHA/<path>#L<line> (see step 6 in the header).
+   The .diff block is REQUIRED and holds the stop's COMPLETE hunk(s), verbatim from
+   the real diff (include @@ hunk headers as <span class="hunk"> lines for multi-hunk
+   stops). The .pseudo block is OPTIONAL — a short plain-language/pseudo-code summary
+   placed ABOVE the diff; it never substitutes for the diff.
+   id on the card (stop-1, stop-2, …) lets map nodes deep-link to it via data-target.
+<div class="stop crit" id="stop-1">
+  <div class="cbx"></div>
+  <div class="num">STOP 1 · key change</div>
+  <div class="st">Validates and normalizes the order payload <span class="pill">KEY CHANGE</span></div>
+  <div><a class="loc" href="https://github.com/OWNER/REPO/blob/HEADSHA/src/routes/order.ts#L42" target="_blank" rel="noopener">src/routes/order.ts:42 <span class="arw">↗</span></a> <span class="depth">boundary</span></div>
+  <div class="pseudo">on request: items = parse(body.items) or throw → downstream code trusts items</div>
+  <div class="diff"><span class="hunk">@@ -40,7 +40,9 @@ export async function createOrder(req, res) {</span>
+<span class="ctx"> function createOrder(req){</span>
+<span class="del">-  const items = req.body.items</span>
+<span class="add">+  const items = parseItems(req.body.items)  // throws on malformed</span>
+<span class="add">+  if (items.length === 0) throw new BadRequest('empty order')</span>
+<span class="ctx"> }</span></div>
+  <p class="why"><b>Why it matters:</b> this is where the request body first becomes trusted domain data. Everything downstream assumes it's well-formed.</p>
+  <ul class="checks">
+    <li><span class="tag input">input</span> Is every field of <code>req.body.items</code> validated, not just parsed?</li>
+    <li><span class="tag authz">authz</span> Is the caller's permission to order these items checked here or upstream?</li>
+    <li><span class="tag edge">edge</span> What happens on an empty or oversized <code>items</code> array?</li>
+  </ul>
+</div>
+
+== STOP CARD (plain, deeper in the call graph — same rule: complete diff, always) ==
+<div class="stop" id="stop-2">
+  <div class="cbx"></div>
+  <div class="num">STOP 2</div>
+  <div class="st">Charges the customer and records the order</div>
+  <div><a class="loc" href="https://github.com/OWNER/REPO/blob/HEADSHA/src/services/billing.ts#L88" target="_blank" rel="noopener">src/services/billing.ts:88 <span class="arw">↗</span></a> <span class="depth">→→ domain</span></div>
+  <div class="diff"><span class="hunk">@@ -85,8 +85,12 @@ export async function settle(order) {</span>
+<span class="ctx"> async function settle(order){</span>
+<span class="del">-  await charge(order.total)</span>
+<span class="del">-  await db.orders.insert(order)</span>
+<span class="add">+  await db.tx(async t => {</span>
+<span class="add">+    await charge(order.total, { idempotencyKey: order.id })</span>
+<span class="add">+    await t.orders.insert(order)</span>
+<span class="add">+  })</span>
+<span class="ctx"> }</span></div>
+  <p class="why"><b>Why it matters:</b> the charge and the DB write must succeed or fail together.</p>
+  <ul class="checks">
+    <li><span class="tag logic">logic</span> Is the charge idempotent if the request is retried?</li>
+    <li><span class="tag edge">edge</span> If the DB write fails after a successful charge, is the charge reversed?</li>
+  </ul>
+</div>
+
+== SKIM BATCH (trivial changes — one line each, no checkbox; link the file or the PR files view) ==
+<div class="skim">
+  <p style="margin:0 0 8px;color:var(--muted);font-size:13.5px">Mechanical — scan for surprises, don't line-read:</p>
+  <div class="fp">✎ renamed <code>getUsr</code> → <code>getUser</code> across 6 files
+    (<a href="https://github.com/OWNER/REPO/pull/N/files" target="_blank" rel="noopener">diff ↗</a>)</div>
+  <div class="fp">✎ formatting / import order in <code>src/utils/*</code></div>
+  <div class="fp">＋ generated <a href="https://github.com/OWNER/REPO/blob/HEADSHA/schema.d.ts" target="_blank" rel="noopener"><code>schema.d.ts</code> ↗</a></div>
+</div>
+
+== FINAL CHECKS (key-change recap + open questions + flags/notes + verdict) ==
+   ALWAYS include the #flagged container and #copyreview button verbatim — JS fills
+   the list from the reviewer's ⚑ flags and ✎ notes and wires the copy button
+   (markdown ready to paste into the GitHub review box). Leave #flagged empty.
+   Write all page copy in plain English — say "key change", never "linchpin".
+<div class="callout"><div class="ic">🎯</div><div>
+  <h3 style="margin:0 0 6px">The key change</h3>
+  <p style="margin:0;color:var(--muted);font-size:14px">STOP 1 — the payload boundary. If one thing breaks this PR, it's here.</p>
+</div></div>
+<h3 style="margin:20px 0 0;font-size:15px">Open questions & unverified</h3>
+<ul class="open">
+  <li>No test covers the empty-<code>items</code> path (STOP 1).</li>
+  <li>Retry/idempotency of the charge is assumed, not proven (STOP 2).</li>
+</ul>
+<div id="flagged" hidden>
+  <h3 style="margin:20px 0 0;font-size:15px">Your flags &amp; notes <span style="color:var(--faint);font-weight:400">(auto-filled as you review)</span></h3>
+  <ul class="open" id="flaggedlist"></ul>
+</div>
+<button class="copybtn" id="copyreview">⧉ Copy review notes (markdown)</button>
+<div class="verdict">Verdict: sound approach; hold approval until the empty-items and idempotency questions are answered.</div>
+
+============================================================================ -->
+</body>
+</html>

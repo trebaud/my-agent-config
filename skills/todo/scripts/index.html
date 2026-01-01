@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Todos</title>
+<script>
+  // Set theme before first paint to avoid a flash of the wrong palette.
+  (function () {
+    const saved = localStorage.getItem("todo-theme");
+    const sysDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    document.documentElement.dataset.theme = saved || (sysDark ? "dark" : "light");
+  })();
+</script>
+<style>
+  :root[data-theme="dark"] {
+    --bg:#0f1115; --card:#1a1d24; --card-hover:#1f232c; --line:#2a2e38;
+    --fg:#e6e8ee; --mut:#8b90a0; --accent:#5b8cff; --accent-fg:#fff;
+    --high:#ff6b6b; --medium:#ffb454; --low:#5bd0a0; --overdue:#ff6b6b;
+    --shadow:0 1px 2px rgba(0,0,0,.4); --shadow-lg:0 8px 24px rgba(0,0,0,.45);
+  }
+  :root[data-theme="light"] {
+    --bg:#f5f6f8; --card:#ffffff; --card-hover:#fafbfc; --line:#e2e5ea;
+    --fg:#1c1f26; --mut:#6b7280; --accent:#3b6ef0; --accent-fg:#fff;
+    --high:#e0483f; --medium:#c97a16; --low:#1f9e6e; --overdue:#e0483f;
+    --shadow:0 1px 2px rgba(20,24,40,.06); --shadow-lg:0 8px 24px rgba(20,24,40,.1);
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.5 system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--fg);
+         display:flex; justify-content:center; padding:48px 16px;
+         transition:background .25s ease, color .25s ease; -webkit-font-smoothing:antialiased; }
+  main { width:100%; max-width:680px; }
+  header { display:flex; align-items:center; justify-content:space-between; margin:0 0 24px; }
+  .head-left { display:flex; align-items:baseline; gap:10px; }
+  h1 { font-size:26px; font-weight:700; letter-spacing:-.02em; margin:0; }
+  .count-pill { font-size:13px; font-weight:600; color:var(--accent); padding:2px 10px; border-radius:999px;
+         background:color-mix(in srgb, var(--accent) 14%, transparent); transition:opacity .2s; }
+  .count-pill.hidden { display:none; }
+  .theme-toggle { display:flex; align-items:center; justify-content:center; width:40px; height:40px;
+         border:1px solid var(--line); border-radius:10px; background:var(--card); color:var(--fg);
+         font-size:18px; padding:0; box-shadow:var(--shadow); transition:background .15s, border-color .15s, transform .1s; }
+  .theme-toggle:hover { background:var(--card-hover); border-color:var(--accent); }
+  .theme-toggle:active { transform:scale(.94); }
+  form { margin-bottom:24px; }
+  .row { display:flex; gap:8px; }
+  .row.opts { margin-top:8px; }
+  input, select { padding:12px 14px; border:1px solid var(--line); border-radius:10px;
+         background:var(--card); color:var(--fg); font-size:16px; box-shadow:var(--shadow);
+         transition:border-color .15s, box-shadow .15s; }
+  input::placeholder { color:var(--mut); }
+  input:focus, select:focus { outline:none; border-color:var(--accent);
+         box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+  #title { flex:1; }
+  .opts input, .opts select { flex:1; min-width:0; color:var(--mut); }
+  select { appearance:none; -webkit-appearance:none; cursor:pointer; padding-right:38px;
+         background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%238b90a0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+         background-repeat:no-repeat; background-position:right 14px center; }
+  button { border:0; border-radius:10px; padding:0 16px; font-size:16px; cursor:pointer; font-family:inherit; }
+  .add { background:var(--accent); color:var(--accent-fg); font-weight:600; box-shadow:var(--shadow);
+         transition:filter .15s, transform .1s; }
+  .add:hover { filter:brightness(1.08); }
+  .add:active { transform:scale(.97); }
+  ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .completed-head { margin:28px 0 12px; display:flex; align-items:center; gap:8px; cursor:pointer;
+        color:var(--mut); font-size:14px; font-weight:500; user-select:none; background:none; border:0; padding:0; width:100%; text-align:left; }
+  .completed-head .chev { transition:transform .15s; font-size:12px; }
+  .completed-head.collapsed .chev { transform:rotate(-90deg); }
+  .completed-head .count { background:var(--line); color:var(--fg); border-radius:999px; padding:0 8px; font-size:12px; font-weight:600; }
+  #completed.hidden { display:none; }
+  .clear { margin-left:auto; background:transparent; color:var(--mut); font-size:13px; padding:2px 8px; border-radius:6px; }
+  .clear:hover { color:var(--high); background:color-mix(in srgb, var(--high) 12%, transparent); }
+  li { display:flex; align-items:flex-start; gap:12px; padding:13px 15px; background:var(--card);
+       border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow);
+       transition:background .15s, border-color .15s, opacity .2s; animation:pop .18s ease; }
+  @keyframes pop { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:none; } }
+  li:hover { background:var(--card-hover); }
+  li.edge-high { border-left:3px solid var(--high); }
+  li.edge-medium { border-left:3px solid var(--medium); }
+  li.edge-low { border-left:3px solid var(--low); }
+  li.done { opacity:.62; }
+  li.done .title { text-decoration:line-through; color:var(--mut); }
+  .body { flex:1; min-width:0; }
+  .title { word-break:break-word; }
+  .title a { color:var(--accent); }
+  .meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; font-size:12px; color:var(--mut); align-items:center; }
+  .badge { padding:2px 9px; border-radius:999px; border:1px solid var(--line); white-space:nowrap;
+         font-weight:600; text-transform:capitalize; }
+  .pri-high { color:var(--high); border-color:color-mix(in srgb, var(--high) 45%, transparent);
+         background:color-mix(in srgb, var(--high) 12%, transparent); }
+  .pri-medium { color:var(--medium); border-color:color-mix(in srgb, var(--medium) 45%, transparent);
+         background:color-mix(in srgb, var(--medium) 12%, transparent); }
+  .pri-low { color:var(--low); border-color:color-mix(in srgb, var(--low) 45%, transparent);
+         background:color-mix(in srgb, var(--low) 12%, transparent); }
+  .due.overdue { color:var(--overdue); border-color:color-mix(in srgb, var(--overdue) 45%, transparent);
+         background:color-mix(in srgb, var(--overdue) 12%, transparent); }
+  input[type=checkbox] { appearance:none; -webkit-appearance:none; position:relative; flex:none;
+         width:21px; height:21px; margin-top:1px; cursor:pointer; border:2px solid var(--line);
+         border-radius:7px; background:var(--card); transition:background .15s, border-color .15s; }
+  input[type=checkbox]:hover { border-color:var(--accent); }
+  input[type=checkbox]:checked { background:var(--accent); border-color:var(--accent); }
+  input[type=checkbox]:checked::after { content:""; position:absolute; left:6px; top:2px;
+         width:5px; height:10px; border:solid var(--accent-fg); border-width:0 2px 2px 0;
+         transform:rotate(43deg); }
+  .del { background:transparent; color:var(--mut); font-size:20px; line-height:1; padding:0 4px; align-self:flex-start;
+         border-radius:6px; transition:color .15s, background .15s; }
+  .del:hover { color:var(--high); background:color-mix(in srgb, var(--high) 12%, transparent); }
+  .empty { color:var(--mut); text-align:center; padding:36px 0; border:1px dashed var(--line); border-radius:12px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="head-left">
+      <h1>Todos</h1>
+      <span class="count-pill hidden" id="open-count"></span>
+    </div>
+    <button class="theme-toggle" id="theme-toggle" type="button" title="Toggle light / dark" aria-label="Toggle theme"></button>
+  </header>
+  <form id="add">
+    <div class="row">
+      <input type="text" id="title" placeholder="What needs doing?" autocomplete="off" autofocus />
+      <button class="add" type="submit">Add</button>
+    </div>
+    <div class="row opts">
+      <input type="date" id="due" title="Due date (optional)" />
+      <select id="priority" title="Priority (optional)">
+        <option value="">No priority</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
+  </form>
+  <ul id="list"></ul>
+
+  <section id="completed-section" class="hidden">
+    <button class="completed-head" id="completed-head" type="button">
+      <span class="chev">▾</span> Completed <span class="count" id="completed-count">0</span>
+      <span class="clear" id="clear-completed" title="Delete all completed">Clear</span>
+    </button>
+    <ul id="completed"></ul>
+  </section>
+</main>
+<script>
+const api = "/api/todos";
+const list = document.getElementById("list");
+const completedList = document.getElementById("completed");
+const completedSection = document.getElementById("completed-section");
+const completedHead = document.getElementById("completed-head");
+const completedCount = document.getElementById("completed-count");
+const openCount = document.getElementById("open-count");
+
+// --- Theme toggle: sun in dark mode (tap for light), moon in light mode. ---
+const themeToggle = document.getElementById("theme-toggle");
+const syncThemeIcon = () =>
+  themeToggle.textContent = document.documentElement.dataset.theme === "dark" ? "☀️" : "🌙";
+themeToggle.onclick = () => {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem("todo-theme", next);
+  syncThemeIcon();
+};
+syncThemeIcon();
+
+const esc = s => s.replace(/[&<>"']/g, c =>
+  ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+
+// Escape, then turn http(s) URLs and bare www. links into anchors.
+function linkify(text) {
+  return esc(text).replace(/\b((?:https?:\/\/|www\.)[^\s<]+[^\s<.,!?)])/g, m => {
+    const href = m.startsWith("http") ? m : "https://" + m;
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${m}</a>`;
+  });
+}
+
+const fmtDate = s => new Date(s.includes("T") || s.includes(" ") ? s : s + "T00:00")
+  .toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric" });
+
+const todayStr = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD, local
+
+function render(t) {
+  const li = document.createElement("li");
+  li.className = [t.done ? "done" : "", t.priority ? "edge-" + t.priority : ""].filter(Boolean).join(" ");
+  const overdue = t.due && !t.done && t.due < todayStr();
+  const meta = [];
+  if (t.priority) meta.push(`<span class="badge pri-${t.priority}">${t.priority}</span>`);
+  if (t.due) meta.push(`<span class="badge due${overdue ? " overdue" : ""}">📅 ${fmtDate(t.due)}${overdue ? " · overdue" : ""}</span>`);
+  if (t.created) meta.push(`<span title="Added">added ${fmtDate(t.created)}</span>`);
+  li.innerHTML = `
+    <input type="checkbox" ${t.done ? "checked" : ""} />
+    <div class="body">
+      <div class="title">${linkify(t.title)}</div>
+      ${meta.length ? `<div class="meta">${meta.join("")}</div>` : ""}
+    </div>
+    <button class="del" title="Delete">&times;</button>`;
+  li.querySelector("input").onchange = e =>
+    fetch(`${api}/${t.id}`, { method:"PATCH", headers:{"content-type":"application/json"},
+      body: JSON.stringify({ done: e.target.checked }) }).then(load);
+  li.querySelector(".del").onclick = () =>
+    fetch(`${api}/${t.id}`, { method:"DELETE" }).then(load);
+  return li;
+}
+
+async function load() {
+  const todos = await fetch(api).then(r => r.json());
+  const open = todos.filter(t => !t.done);
+  const done = todos.filter(t => t.done);
+
+  openCount.textContent = `${open.length} open`;
+  openCount.classList.toggle("hidden", !open.length);
+
+  list.innerHTML = "";
+  if (!open.length) {
+    list.innerHTML = `<li class="empty">${done.length ? "All done! 🎉" : "Nothing here. Add your first task above."}</li>`;
+  } else {
+    for (const t of open) list.appendChild(render(t));
+  }
+
+  completedSection.classList.toggle("hidden", !done.length);
+  completedCount.textContent = done.length;
+  completedList.innerHTML = "";
+  for (const t of done) completedList.appendChild(render(t));
+}
+
+completedHead.onclick = e => {
+  if (e.target.id === "clear-completed") return; // handled separately
+  completedHead.classList.toggle("collapsed");
+  completedList.classList.toggle("hidden");
+};
+
+document.getElementById("clear-completed").onclick = async e => {
+  e.stopPropagation();
+  const done = await fetch(api).then(r => r.json()).then(ts => ts.filter(t => t.done));
+  if (!done.length || !confirm(`Delete ${done.length} completed task${done.length > 1 ? "s" : ""}?`)) return;
+  await Promise.all(done.map(t => fetch(`${api}/${t.id}`, { method:"DELETE" })));
+  load();
+};
+
+document.getElementById("add").onsubmit = async e => {
+  e.preventDefault();
+  const input = document.getElementById("title");
+  const dueEl = document.getElementById("due");
+  const priEl = document.getElementById("priority");
+  const title = input.value.trim();
+  if (!title) return;
+  await fetch(api, { method:"POST", headers:{"content-type":"application/json"},
+    body: JSON.stringify({ title, due: dueEl.value || null, priority: priEl.value || null }) });
+  input.value = ""; dueEl.value = ""; priEl.value = "";
+  input.focus();
+  load();
+};
+
+load();
+</script>
+</body>
+</html>

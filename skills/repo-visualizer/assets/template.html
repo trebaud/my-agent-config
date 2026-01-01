@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<!--
+  REPO VISUALIZER TEMPLATE
+  ========================
+  1. Fill the <title>, the <nav> links, and the <main> sections.
+  2. Each nav link href="#id" must match a <section id="id">.
+  3. Copy section/component markup from the COMPONENTS LIBRARY block at the bottom
+     of <body> (it lives inside a comment so it never renders). Paste into <main>.
+  4. Keep it self-contained: no external CSS/JS/fonts/images. Must open offline.
+  5. Delete this comment and the COMPONENTS LIBRARY comment before shipping (optional).
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{REPO NAME}} — codebase overview</title>
+<style>
+  :root{
+    --bg:#0f1117; --bg2:#161922; --panel:#1c2030; --panel2:#232838;
+    --line:#2c3245; --txt:#e7eaf3; --muted:#9aa3bd; --faint:#6b7494;
+    --indigo:#7c8cff; --indigo2:#5566f0; --violet:#b98bff;
+    --green:#46d6a0; --amber:#ffb454; --red:#ff6b81; --cyan:#5bd6e6;
+    --radius:14px; --maxw:1120px;
+    --mono:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 75% -10%,#1d2236 0%,var(--bg) 55%);color:var(--txt);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--indigo);text-decoration:none}
+  code{font-family:var(--mono);font-size:.86em;background:#0c0e15;border:1px solid var(--line);padding:.1em .4em;border-radius:6px;color:#cdd6f4}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rgba(15,17,23,.78);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;gap:8px;height:56px;flex-wrap:wrap}
+  nav .brand{font-weight:700;letter-spacing:.2px;margin-right:auto;display:flex;align-items:center;gap:10px}
+  nav .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--indigo);box-shadow:0 0 14px var(--indigo)}
+  nav a.link{color:var(--muted);font-size:13px;padding:6px 10px;border-radius:8px;transition:.15s}
+  nav a.link:hover{color:var(--txt);background:var(--panel)}
+
+  /* hero */
+  header.hero{padding:64px 0 28px}
+  .kick{color:var(--violet);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px}
+  h1{font-size:42px;line-height:1.1;margin:10px 0 14px;font-weight:800;background:linear-gradient(120deg,#fff,#aeb8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:var(--muted);font-size:17px;max-width:760px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .chip{font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--txt)}
+  .chip b{color:var(--indigo)}
+  .chip.amber{border-color:#5a431f;background:#241b0e;color:var(--amber)}
+  .chip.green{border-color:#1f4a39;background:#0e211a;color:var(--green)}
+
+  section{padding:40px 0;border-top:1px solid var(--line)}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 6px}
+  .h2title{font-size:26px;font-weight:750;margin:0 0 18px}
+  .sub{color:var(--muted);max-width:780px;margin:-8px 0 22px}
+
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:860px){.g2,.g3{grid-template-columns:1fr}}
+
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .card h3{margin:0 0 8px;font-size:16px}
+  .card p{margin:0;color:var(--muted);font-size:14px}
+  .card .big{font-size:24px;font-weight:800;color:var(--txt)}
+  .card .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+
+  /* problem/fix or note callout */
+  .callout{display:flex;gap:16px;align-items:flex-start;border:1px solid #5a2331;background:linear-gradient(180deg,#241420,#1a0f17);border-radius:var(--radius);padding:18px}
+  .callout .ic{font-size:24px;line-height:1}
+  .callout.fix{border-color:#1f4a39;background:linear-gradient(180deg,#0e211a,#0c1a15)}
+  .callout.info{border-color:#244;background:linear-gradient(180deg,#10242b,#0c1a1f)}
+
+  /* flow diagram */
+  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .node{flex:1;min-width:150px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px;position:relative}
+  .node .t{font-weight:700;font-size:14px;margin-bottom:4px}
+  .node .d{color:var(--muted);font-size:12.5px}
+  .node .tag{position:absolute;top:-10px;left:14px;font-size:10.5px;font-weight:700;letter-spacing:.08em;padding:2px 8px;border-radius:6px;text-transform:uppercase}
+  .arrow{display:flex;align-items:center;justify-content:center;color:var(--faint);font-size:22px;padding:0 6px;flex:0 0 auto}
+  @media(max-width:860px){.arrow{transform:rotate(90deg);width:100%;padding:6px 0}}
+  .tag.api{background:#1a2740;color:var(--cyan);border:1px solid #244}
+  .tag.db{background:#1d2a1f;color:var(--green);border:1px solid #2c5}
+  .tag.user{background:#2a2340;color:var(--violet);border:1px solid #534}
+
+  /* directory tree */
+  .tree{font-family:var(--mono);font-size:13px;background:#0c0e15;border:1px solid var(--line);border-radius:12px;padding:18px;overflow:auto;line-height:1.7}
+  .tree .row{display:flex;gap:14px;align-items:baseline}
+  .tree .p{color:#cdd6f4;white-space:pre}
+  .tree .p .d{color:var(--indigo);font-weight:600}
+  .tree .p .key{color:var(--amber);font-weight:700}
+  .tree .note{color:var(--muted);font-size:12px;font-family:var(--sans)}
+
+  /* toggle */
+  .toggle{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px;gap:4px;margin-bottom:18px}
+  .toggle button{border:0;background:transparent;color:var(--muted);font-weight:650;font-size:13px;padding:8px 16px;border-radius:999px;cursor:pointer;transition:.15s;font-family:inherit}
+  .toggle button.on{background:var(--indigo2);color:#fff;box-shadow:0 4px 14px rgba(85,102,240,.4)}
+  .branch{display:none}
+  .branch.show{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .verdict{margin-top:14px;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600}
+  .verdict.skip{background:#241b0e;border:1px solid #5a431f;color:var(--amber)}
+  .verdict.swap{background:#0e211a;border:1px solid #1f4a39;color:var(--green)}
+
+  /* module / file cards */
+  .files{display:grid;gap:10px}
+  .frow{display:grid;grid-template-columns:26px 1fr;gap:12px;align-items:start;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+  .frow.crit{border-color:#5a431f;background:linear-gradient(180deg,#241b0e,#1b1509)}
+  .frow .badge{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px}
+  .badge.entry{background:#0e211a;color:var(--green);border:1px solid #1f4a39}
+  .badge.core{background:#1a2740;color:var(--cyan);border:1px solid #234}
+  .badge.infra{background:#211a36;color:var(--violet);border:1px solid #432f5a}
+  .badge.crit{background:#241b0e;color:var(--amber);border:1px solid #5a431f}
+  .frow .fp{font-family:var(--mono);font-size:13px;color:var(--txt);word-break:break-all}
+  .frow .fd{color:var(--muted);font-size:13px;margin-top:3px}
+  .pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:5px;margin-left:8px;vertical-align:middle}
+  .pill.crit{background:#5a431f;color:#ffd9a0}
+
+  /* schema */
+  .schema{font-family:var(--mono);font-size:13px;background:#0c0e15;border:1px solid var(--line);border-radius:12px;padding:16px;overflow:auto;white-space:pre}
+  .schema .k{color:var(--cyan)} .schema .c{color:var(--faint)} .schema .s{color:var(--green)} .schema .core{color:var(--amber);font-weight:700}
+
+  /* glossary */
+  .glossary{display:grid;gap:10px}
+  .gterm{display:grid;grid-template-columns:180px 1fr;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+  @media(max-width:680px){.gterm{grid-template-columns:1fr}}
+  .gterm .term{font-family:var(--mono);font-weight:700;color:var(--cyan);font-size:13.5px}
+  .gterm .def{color:var(--muted);font-size:13.5px}
+
+  /* edge / pattern cards */
+  .edge{border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:14px}
+  .edge .et{font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:5px}
+  .edge .ed{color:var(--muted);font-size:13px}
+  .stat{font-size:11px;font-weight:800;padding:2px 8px;border-radius:6px}
+  .stat.ok{background:#0e211a;color:var(--green)} .stat.by{background:#241b0e;color:var(--amber)} .stat.note{background:#1a2740;color:var(--cyan)}
+
+  /* checklist */
+  ul.check{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+  ul.check li{display:flex;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:14px}
+  ul.check li .cb{color:var(--green);font-weight:800}
+  ul.check li code{font-size:12px}
+
+  /* === SVG GRAPHS (architecture / sequence / flowchart) === */
+  .gwrap{background:radial-gradient(700px 300px at 50% 0,#13182a,#0c0e15);border:1px solid var(--line);border-radius:var(--radius);padding:14px;overflow-x:auto}
+  .gwrap svg{width:100%;height:auto;display:block;min-width:680px}
+  .glegend{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;font-size:12.5px;color:var(--muted)}
+  .glegend span{display:inline-flex;align-items:center;gap:7px}
+  .glegend i{width:22px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
+  .glegend .sw{width:12px;height:12px;border-radius:4px;border:1px solid;display:inline-block}
+  .hint{font-size:12px;color:var(--faint);margin-top:8px}
+  /* interactive nodes/edges (architecture graph): add class="depgraph" to the <svg> */
+  .gnode{transition:opacity .18s}
+  .gnode rect{transition:filter .18s}
+  .gnode .nt{font-weight:750;font-size:13px;fill:var(--txt)}
+  .gnode .ns{font-size:10.5px;fill:var(--muted);font-family:var(--mono)}
+  .gedge{transition:opacity .18s}
+  .gedge text{font-family:var(--mono);fill:var(--faint);font-size:10px}
+  svg.hovering .gnode:not(.hot){opacity:.22}
+  svg.hovering .gedge:not(.hot){opacity:.1}
+  .hot rect{filter:drop-shadow(0 0 9px currentColor)}
+  /* animated "packet" travelling an edge: <path class="pkt" pathLength="100" .../> */
+  .pkt{fill:none;stroke-linecap:round;stroke-dasharray:3 97;animation:pkt 2.6s linear infinite}
+  @keyframes pkt{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+
+  footer{padding:40px 0 70px;color:var(--faint);font-size:13px;border-top:1px solid var(--line)}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:16px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:12px;height:12px;border-radius:4px;display:inline-block}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand"><span class="dot"></span>{{REPO NAME}}</div>
+  <!-- one <a> per section, href must match a section id -->
+  <a class="link" href="#layout">Layout</a>
+  <a class="link" href="#arch">Architecture</a>
+  <a class="link" href="#flow">Flow</a>
+  <a class="link" href="#modules">Modules</a>
+  <a class="link" href="#start">Start here</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="kick">{{LANGUAGE / DOMAIN}}</div>
+  <h1>{{REPO NAME}}</h1>
+  <p class="lede">{{ONE-LINE SUMMARY OF WHAT THIS CODEBASE IS AND DOES}}</p>
+  <div class="chips">
+    <span class="chip"><b>{{language}}</b></span>
+    <span class="chip">{{framework}}</span>
+    <span class="chip green">{{~LOC / # files}}</span>
+    <span class="chip amber">{{# services or modules}}</span>
+  </div>
+</div></header>
+
+<main>
+  <!-- ▼▼▼ BUILD SECTIONS HERE — copy markup from the COMPONENTS LIBRARY below ▼▼▼ -->
+
+</main>
+
+<footer><div class="wrap">
+  {{Provenance: repo __ · commit __ · generated __ · scope (whole repo / service X).}}
+</div></footer>
+
+<script>
+  // Generic toggle: each toggle group calls setBranch('<groupId>','<variant>').
+  // Branches are <div id="<groupId>-<variant>" class="branch">; buttons are id="<groupId>-btn-<variant>".
+  function setBranch(group, which){
+    document.querySelectorAll('[id^="'+group+'-"].branch').forEach(b=>{
+      b.classList.toggle('show', b.id === group+'-'+which);
+    });
+    document.querySelectorAll('[id^="'+group+'-btn-"]').forEach(btn=>{
+      btn.classList.toggle('on', btn.id === group+'-btn-'+which);
+    });
+  }
+  // Architecture-graph hover-highlight. Works on any <svg class="depgraph">.
+  // Nodes: <g class="gnode" data-id="X">. Edges: <g class="gedge" data-from="X" data-to="Y">.
+  document.querySelectorAll('svg.depgraph').forEach(svg=>{
+    const edges=[...svg.querySelectorAll('.gedge')];
+    const nodes=[...svg.querySelectorAll('.gnode')];
+    const clear=()=>{ svg.classList.remove('hovering'); [...edges,...nodes].forEach(el=>el.classList.remove('hot')); };
+    nodes.forEach(n=>{
+      const id=n.dataset.id;
+      n.addEventListener('mouseenter',()=>{
+        svg.classList.add('hovering'); n.classList.add('hot');
+        edges.forEach(e=>{
+          if(e.dataset.from===id||e.dataset.to===id){
+            e.classList.add('hot');
+            const other=e.dataset.from===id?e.dataset.to:e.dataset.from;
+            const on=nodes.find(x=>x.dataset.id===other); if(on) on.classList.add('hot');
+          }
+        });
+      });
+      n.addEventListener('mouseleave',clear);
+    });
+  });
+  // Sticky-nav scroll-spy
+  const links=[...document.querySelectorAll('nav a.link')];
+  const map=Object.fromEntries(links.map(l=>[l.getAttribute('href').slice(1),l]));
+  const obs=new IntersectionObserver((es)=>{
+    es.forEach(e=>{ if(e.isIntersecting){ links.forEach(l=>{l.style.color='';l.style.background='';}); const a=map[e.target.id]; if(a){a.style.color='var(--txt)';a.style.background='var(--panel)';} }});
+  },{rootMargin:'-45% 0px -50% 0px'});
+  document.querySelectorAll('section[id]').forEach(s=>obs.observe(s));
+</script>
+
+<!-- ============================================================================
+COMPONENTS LIBRARY  —  copy what you need into <main>. This block never renders.
+
+== SECTION SHELL ==
+<section id="ID"><div class="wrap">
+  <h2>EYEBROW</h2>
+  <div class="h2title">Section heading</div>
+  <p class="sub">Optional one-line intro.</p>
+  ... section body ...
+</div></section>
+
+== AT-A-GLANCE STAT CARDS (stack / scale / entry / run) ==
+<div class="grid g3">
+  <div class="card"><div class="lbl">Stack</div><p style="margin-top:6px">Node + TypeScript, Express, Mongo.</p></div>
+  <div class="card"><div class="lbl">Scale</div><div class="big">~24k</div><p>LOC across 180 files</p></div>
+  <div class="card"><div class="lbl">Run</div><p style="margin-top:6px"><code>pnpm dev</code> · <code>pnpm test</code></p></div>
+</div>
+
+== DIRECTORY MAP (tree; .d = dir, .key = the linchpin dir) ==
+<div class="tree">
+  <div class="row"><span class="p"><span class="d">src/</span></span><span class="note">application source</span></div>
+  <div class="row"><span class="p">├─ <span class="key">routes/</span></span><span class="note">HTTP entry points — start here</span></div>
+  <div class="row"><span class="p">├─ <span class="d">services/</span></span><span class="note">core domain logic</span></div>
+  <div class="row"><span class="p">├─ <span class="d">models/</span></span><span class="note">data layer (Mongoose schemas)</span></div>
+  <div class="row"><span class="p">└─ <span class="d">lib/</span></span><span class="note">shared infra (db, queue, config)</span></div>
+  <div class="row"><span class="p"><span class="d">test/</span></span><span class="note">integration + unit tests</span></div>
+</div>
+
+== PROBLEM/NOTE CALLOUT (variants: default | fix | info) ==
+<div class="grid g2">
+  <div class="callout info"><div class="ic">ℹ️</div><div>
+    <h3 style="margin:0 0 6px">What this is</h3>
+    <p style="margin:0;color:var(--muted);font-size:14px">One-paragraph orientation.</p>
+  </div></div>
+  <div class="callout fix"><div class="ic">🧭</div><div>
+    <h3 style="margin:0 0 6px">How it runs</h3>
+    <p style="margin:0;color:var(--muted);font-size:14px">Entry point and lifecycle in a sentence.</p>
+  </div></div>
+</div>
+
+== FLOW DIAGRAM (repeat .node/.arrow; tag classes: api | db | user) ==
+<div class="flow">
+  <div class="node"><span class="tag user">request</span><div class="t">Step name</div><div class="d">What happens.</div></div>
+  <div class="arrow">→</div>
+  <div class="node"><span class="tag api">handler</span><div class="t">Step name</div><div class="d">What happens.</div></div>
+  <div class="arrow">→</div>
+  <div class="node"><span class="tag db">persist</span><div class="t">Step name</div><div class="d">What happens.</div></div>
+</div>
+
+== INTERACTIVE TOGGLE (group id = "g1"; variants "a"/"b" — e.g. read path vs write path) ==
+<div class="toggle" role="tablist">
+  <button id="g1-btn-a" class="on" onclick="setBranch('g1','a')">Read path</button>
+  <button id="g1-btn-b" onclick="setBranch('g1','b')">Write path</button>
+</div>
+<div id="g1-a" class="branch show">
+  <div class="flow"> ...nodes... </div>
+  <div class="verdict swap">Where it ends up.</div>
+</div>
+<div id="g1-b" class="branch">
+  <div class="flow"> ...nodes... </div>
+  <div class="verdict skip">Where it ends up.</div>
+</div>
+
+== ARCHITECTURE / DEPENDENCY GRAPH (interactive: hover a node to isolate its paths) ==
+   Wrap in .gwrap. Add class="depgraph" so the JS wires hover-highlight.
+   Nodes: <g class="gnode" data-id="X">; Edges: <g class="gedge" data-from="X" data-to="Y">.
+   Edge styles: solid=calls, stroke-dasharray "2 4"=writes, "6 5"=reads.
+   Animated packet: add a 2nd <path class="pkt" pathLength="100" .../> over a hot edge (stagger via style="animation-delay:.5s").
+   Lay nodes on a grid; node box ~150x60; node center = (x+75, y+30). Tip: entry points on the left, infra/db on the right or bottom, core in the middle.
+<div class="gwrap">
+  <svg class="depgraph" viewBox="0 0 980 560" role="img" aria-label="Module dependency graph">
+    <defs>
+      <marker id="a-indigo" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7c8cff"/></marker>
+      <marker id="a-green"  markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#46d6a0"/></marker>
+      <marker id="a-amber"  markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ffb454"/></marker>
+      <marker id="a-red"    markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ff6b81"/></marker>
+    </defs>
+    <!-- EDGES first (render under nodes) -->
+    <g class="gedge" data-from="route" data-to="svc">
+      <path d="M190,100 L290,100" stroke="#46507a" stroke-width="2" fill="none" marker-end="url(#a-indigo)"/>
+      <path class="pkt" d="M190,100 L290,100" stroke="#7c8cff" stroke-width="3" pathLength="100" style="animation-delay:0s"/>
+    </g>
+    <g class="gedge" data-from="svc" data-to="model">
+      <path d="M385,130 L385,240" stroke="#46d6a0" stroke-width="2" fill="none" stroke-dasharray="2 4" marker-end="url(#a-green)"/>
+      <text x="392" y="190">writes</text>
+    </g>
+    <!-- NODES (color by role via stroke + style="color:..." so the hot glow matches) -->
+    <g class="gnode" data-id="route"><rect x="40"  y="70" width="150" height="60" rx="11" fill="#0f241b" stroke="#46d6a0" stroke-width="1.5" style="color:#46d6a0"/><text class="nt" x="115" y="95" text-anchor="middle">routes/</text><text class="ns" x="115" y="113" text-anchor="middle">entry</text></g>
+    <g class="gnode" data-id="svc"><rect x="290" y="70" width="150" height="60" rx="11" fill="#1a2040" stroke="#7c8cff" stroke-width="1.5" style="color:#7c8cff"/><text class="nt" x="365" y="95" text-anchor="middle">services/</text><text class="ns" x="365" y="113" text-anchor="middle">core</text></g>
+    <g class="gnode" data-id="model"><rect x="290" y="240" width="150" height="60" rx="11" fill="#0f241b" stroke="#46d6a0" stroke-width="1.5" style="color:#46d6a0"/><text class="nt" x="365" y="265" text-anchor="middle">models/</text><text class="ns" x="365" y="283" text-anchor="middle">db</text></g>
+  </svg>
+</div>
+<div class="glegend">
+  <span><i style="border-color:#7c8cff"></i> calls</span>
+  <span><i style="border-color:#46d6a0;border-top-style:dotted"></i> writes</span>
+  <span><i style="border-color:#ffb454;border-top-style:dashed"></i> reads</span>
+  <span><span class="sw" style="background:#0f241b;border-color:#46d6a0"></span> entry/db</span>
+  <span><span class="sw" style="background:#1a2040;border-color:#7c8cff"></span> core</span>
+  <span><span class="sw" style="background:#211a36;border-color:#b98bff"></span> infra</span>
+</div>
+<div class="hint">Tip: hover a module to trace what depends on it and what it touches.</div>
+
+== SEQUENCE DIAGRAM (swimlanes; time flows downward — one key end-to-end flow) ==
+   Lanes = vertical lifelines. Message = horizontal <line> + label above. Return = dashed.
+   Lane x-centers below: 75 / 235 / 405 / 575 / 740 / 885. Increment message y by ~30.
+<div class="gwrap">
+  <svg viewBox="0 0 940 540" role="img" aria-label="Sequence diagram">
+    <defs>
+      <marker id="s-i" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7c8cff"/></marker>
+      <marker id="s-g" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#46d6a0"/></marker>
+      <marker id="s-m" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#9aa3bd"/></marker>
+    </defs>
+    <g text-anchor="middle">
+      <rect x="20"  y="18" width="110" height="34" rx="8" fill="#211a36" stroke="#b98bff"/><text x="75"  y="40" fill="#fff" font-size="12.5" font-weight="700">Client</text>
+      <rect x="180" y="18" width="110" height="34" rx="8" fill="#1a2040" stroke="#7c8cff"/><text x="235" y="40" fill="#fff" font-size="12.5" font-weight="700">Route</text>
+      <rect x="345" y="18" width="120" height="34" rx="8" fill="#1a2040" stroke="#7c8cff"/><text x="405" y="40" fill="#fff" font-size="12.5" font-weight="700">Service</text>
+      <rect x="520" y="18" width="110" height="34" rx="8" fill="#10242b" stroke="#5bd6e6"/><text x="575" y="40" fill="#fff" font-size="12.5" font-weight="700">Adapter</text>
+      <rect x="685" y="18" width="110" height="34" rx="8" fill="#2a2110" stroke="#ffb454"/><text x="740" y="40" fill="#fff" font-size="12.5" font-weight="700">External</text>
+      <rect x="845" y="18" width="80"  height="34" rx="8" fill="#0f241b" stroke="#46d6a0"/><text x="885" y="40" fill="#fff" font-size="12.5" font-weight="700">DB</text>
+      <g stroke="#2c3245" stroke-dasharray="3 5">
+        <line x1="75" y1="52" x2="75" y2="510"/><line x1="235" y1="52" x2="235" y2="510"/><line x1="405" y1="52" x2="405" y2="510"/>
+        <line x1="575" y1="52" x2="575" y2="510"/><line x1="740" y1="52" x2="740" y2="510"/><line x1="885" y1="52" x2="885" y2="510"/>
+      </g>
+    </g>
+    <text x="24" y="78" fill="#b98bff" font-size="11" font-weight="800" letter-spacing="1.5">PHASE</text>
+    <line x1="20" y1="84" x2="920" y2="84" stroke="#2c3245"/>
+    <g font-family="var(--mono)" font-size="11" fill="#cdd6f4">
+      <line x1="75"  y1="104" x2="231" y2="104" stroke="#7c8cff" stroke-width="1.6" marker-end="url(#s-i)"/><text x="78" y="99">request</text>
+      <line x1="740" y1="134" x2="579" y2="134" stroke="#9aa3bd" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#s-m)"/><text x="585" y="129" fill="#9aa3bd">← response</text>
+      <line x1="405" y1="164" x2="881" y2="164" stroke="#46d6a0" stroke-width="1.8" marker-end="url(#s-g)"/><text x="408" y="159" fill="#46d6a0">persist</text>
+    </g>
+    <rect x="345" y="180" width="300" height="22" rx="6" fill="#241b0e" stroke="#5a431f"/><text x="495" y="195" text-anchor="middle" fill="#ffb454" font-size="11" font-weight="700">note / invariant</text>
+  </svg>
+</div>
+
+== DECISION / CONTROL-FLOW CHART (top-down; diamonds = decisions) ==
+   Process = <rect rx=10>. Start/end = <rect rx=22>. Decision = <polygon> diamond.
+   Label branch arrows with yes/no. Diamond points: "cx,cy-60 cx+130,cy cx,cy+60 cx-130,cy".
+<div class="gwrap">
+  <svg viewBox="0 0 760 460" role="img" aria-label="Control-flow chart">
+    <defs>
+      <marker id="f-i" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7c8cff"/></marker>
+      <marker id="f-g" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#46d6a0"/></marker>
+      <marker id="f-r" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ff6b81"/></marker>
+    </defs>
+    <g text-anchor="middle">
+      <rect x="250" y="20"  width="260" height="44" rx="22" fill="#10242b" stroke="#5bd6e6"/><text x="380" y="47"  fill="#fff" font-size="13" font-weight="700">Incoming request</text>
+      <rect x="270" y="98"  width="220" height="44" rx="10" fill="#1c2030" stroke="#46507a"/><text x="380" y="125" fill="#e7eaf3" font-size="12.5">Authenticate</text>
+      <polygon points="380,168 510,228 380,288 250,228" fill="#1a2040" stroke="#7c8cff"/><text x="380" y="232" fill="#fff" font-size="12.5" font-weight="700">Authorized?</text>
+      <rect x="540" y="200" width="200" height="56" rx="10" fill="#0f241b" stroke="#46d6a0"/><text x="640" y="232" fill="#fff" font-size="12.5" font-weight="700">Handle</text>
+      <rect x="280" y="318" width="200" height="50" rx="10" fill="#2a1318" stroke="#ff6b81"/><text x="380" y="348" fill="#ff8a9b" font-size="12.5" font-weight="700">401 reject</text>
+    </g>
+    <g fill="none">
+      <line x1="380" y1="64"  x2="380" y2="96"  stroke="#46507a" stroke-width="2" marker-end="url(#f-i)"/>
+      <line x1="380" y1="142" x2="380" y2="166" stroke="#46507a" stroke-width="2" marker-end="url(#f-i)"/>
+      <path d="M510,228 L538,228" stroke="#46d6a0" stroke-width="2" marker-end="url(#f-g)"/><text x="524" y="220" fill="#46d6a0" font-family="var(--mono)" font-size="11" text-anchor="middle">yes</text>
+      <path d="M380,288 L380,316" stroke="#ff6b81" stroke-width="2" marker-end="url(#f-r)"/><text x="396" y="306" fill="#ff6b81" font-family="var(--mono)" font-size="11">no</text>
+    </g>
+  </svg>
+</div>
+
+== KEY MODULE CARDS (badge: entry | core | infra | crit) ==
+<div class="legend">
+  <span><i class="sw" style="background:var(--green)"></i> entry point</span>
+  <span><i class="sw" style="background:var(--cyan)"></i> core / domain</span>
+  <span><i class="sw" style="background:var(--violet)"></i> infra / adapter</span>
+  <span><i class="sw" style="background:var(--amber)"></i> start here</span>
+</div>
+<div class="files">
+  <div class="frow crit"><div class="badge crit">★</div><div>
+    <div class="fp">src/services/order.ts <span class="pill crit">START HERE</span></div>
+    <div class="fd">The linchpin — orchestrates the core domain flow. Read this first.</div></div></div>
+  <div class="frow"><div class="badge entry">▶</div><div>
+    <div class="fp">src/server.ts</div><div class="fd">Process entry point — boots the HTTP server.</div></div></div>
+  <div class="frow"><div class="badge core">●</div><div>
+    <div class="fp">src/services/pricing.ts</div><div class="fd">Core domain logic for X.</div></div></div>
+  <div class="frow"><div class="badge infra">⚙</div><div>
+    <div class="fp">src/lib/db.ts</div><div class="fd">Infra — database connection + pooling.</div></div></div>
+</div>
+
+== EXTERNAL INTEGRATIONS (cards) ==
+<div class="grid g3">
+  <div class="card"><h3>PostgreSQL</h3><p>Primary store via <code>lib/db.ts</code>. 12 tables.</p></div>
+  <div class="card"><h3>Redis</h3><p>Cache + job queue (BullMQ) via <code>lib/queue.ts</code>.</p></div>
+  <div class="card"><h3>Stripe</h3><p>Payments — <code>services/billing.ts</code>, webhook at <code>routes/webhooks.ts</code>.</p></div>
+</div>
+
+== SCHEMA / DATA MODEL (spans: k=type, s=string-literal, c=comment, core=highlight) ==
+<div class="schema">{
+  <span class="core">id</span>:     <span class="k">UUID</span>,        <span class="c">// primary key</span>
+  status: <span class="s">'open' | 'closed'</span>,
+  ownerId: <span class="k">UUID</span>     <span class="c">// → User.id</span>
+}</div>
+
+== PATTERN / CONVENTION CARDS (stat: ok | by | note) ==
+<div class="grid g2">
+  <div class="edge"><div class="et">Layering <span class="stat ok">enforced</span></div><div class="ed">routes → services → models; no upward imports.</div></div>
+  <div class="edge"><div class="et">Errors <span class="stat note">convention</span></div><div class="ed">Throw <code>AppError</code>; caught by global middleware.</div></div>
+</div>
+
+== GLOSSARY (domain terms) ==
+<div class="glossary">
+  <div class="gterm"><div class="term">Tenant</div><div class="def">An isolated customer account; scopes every query.</div></div>
+  <div class="gterm"><div class="term">Job</div><div class="def">A unit of queued background work; retried up to 3&times;.</div></div>
+</div>
+
+== WHERE TO START / ONBOARDING CHECKLIST ==
+<ul class="check">
+  <li><span class="cb">1</span><div>Read <code>src/server.ts</code> — see how the app boots.</div></li>
+  <li><span class="cb">2</span><div>Follow a request through <code>routes/ → services/order.ts → models/</code>.</div></li>
+  <li><span class="cb">3</span><div>Run it: <code>pnpm install</code> · <code>pnpm dev</code> · <code>pnpm test</code>.</div></li>
+</ul>
+
+============================================================================ -->
+</body>
+</html>

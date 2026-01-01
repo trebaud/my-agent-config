@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<!--
+  I-KNOW-KUNGFU — LEARNING-SITE PAGE SHELL
+  ========================================
+  This is a PER-PAGE shell. The deliverable is a SET of linked pages — copy this file once
+  per page (index.html, lesson-1.html, lesson-2.html, …, flashcards.html, quiz.html, review.html).
+  1. Fill the <title>, the hero, and the <main> sections for THIS page.
+  2. The <nav> links to the SIBLING pages (relative hrefs). Mark the current page class="link on".
+  3. Copy section/component markup from the COMPONENTS LIBRARY block at the bottom of <body>
+     (it lives inside a comment so it never renders). Paste into <main>.
+  4. Keep every page self-contained: no external CSS/JS/fonts/images. Must open offline by double-click.
+  5. The headline visual (on index.html) is the CONCEPT MAP (reuses the hover-to-isolate depgraph).
+     Every node/edge must map to a real idea in the material.
+  6. Lesson pages RUN THE LOOP: curiosity question → predict-reveal → worked example → flashcards →
+     teach-back / one-sentence compression box → prev/next pager. They are not passive reference.
+  7. Delete this comment and the COMPONENTS LIBRARY comment before shipping (optional).
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{SUBJECT}} — {{PAGE NAME}}</title>
+<style>
+  :root{
+    --bg:#0f1117; --bg2:#161922; --panel:#1c2030; --panel2:#232838;
+    --line:#2c3245; --txt:#e7eaf3; --muted:#9aa3bd; --faint:#6b7494;
+    --indigo:#7c8cff; --indigo2:#5566f0; --violet:#b98bff;
+    --green:#46d6a0; --amber:#ffb454; --red:#ff6b81; --cyan:#5bd6e6;
+    --radius:14px; --maxw:1120px;
+    --mono:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 75% -10%,#1d2236 0%,var(--bg) 55%);color:var(--txt);font-family:var(--sans);line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--indigo);text-decoration:none}
+  code{font-family:var(--mono);font-size:.86em;background:#0c0e15;border:1px solid var(--line);padding:.1em .4em;border-radius:6px;color:#cdd6f4}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:rgba(15,17,23,.78);border-bottom:1px solid var(--line)}
+  nav .wrap{display:flex;align-items:center;gap:8px;height:56px;flex-wrap:wrap}
+  nav .brand{font-weight:700;letter-spacing:.2px;margin-right:auto;display:flex;align-items:center;gap:10px}
+  nav .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--indigo);box-shadow:0 0 14px var(--indigo)}
+  nav a.link{color:var(--muted);font-size:13px;padding:6px 10px;border-radius:8px;transition:.15s}
+  nav a.link:hover{color:var(--txt);background:var(--panel)}
+  nav a.link.on{color:#fff;background:var(--indigo2)}
+
+  /* hero */
+  header.hero{padding:64px 0 28px}
+  .kick{color:var(--violet);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px}
+  h1{font-size:42px;line-height:1.1;margin:10px 0 14px;font-weight:800;background:linear-gradient(120deg,#fff,#aeb8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:var(--muted);font-size:17px;max-width:760px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .chip{font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--txt)}
+  .chip b{color:var(--indigo)}
+  .chip.amber{border-color:#5a431f;background:#241b0e;color:var(--amber)}
+  .chip.green{border-color:#1f4a39;background:#0e211a;color:var(--green)}
+  .chip.violet{border-color:#432f5a;background:#1a1228;color:var(--violet)}
+
+  section{padding:40px 0;border-top:1px solid var(--line)}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:0 0 6px}
+  .h2title{font-size:26px;font-weight:750;margin:0 0 18px}
+  .sub{color:var(--muted);max-width:780px;margin:-8px 0 22px}
+
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:860px){.g2,.g3{grid-template-columns:1fr}}
+
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .card h3{margin:0 0 8px;font-size:16px}
+  .card p{margin:0;color:var(--muted);font-size:14px}
+  .card .big{font-size:24px;font-weight:800;color:var(--txt)}
+  .card .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+
+  /* callout (variants: default | fix | info) */
+  .callout{display:flex;gap:16px;align-items:flex-start;border:1px solid #5a2331;background:linear-gradient(180deg,#241420,#1a0f17);border-radius:var(--radius);padding:18px}
+  .callout .ic{font-size:24px;line-height:1}
+  .callout.fix{border-color:#1f4a39;background:linear-gradient(180deg,#0e211a,#0c1a15)}
+  .callout.info{border-color:#244;background:linear-gradient(180deg,#10242b,#0c1a1f)}
+
+  /* === BLOOM PROGRESS LADDER === */
+  .bloom{display:flex;flex-direction:column-reverse;gap:8px}
+  .rung{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 16px;position:relative;opacity:.55;transition:.2s}
+  .rung .lvl{font-family:var(--mono);font-size:11px;color:var(--faint);width:18px}
+  .rung .nm{font-weight:700;font-size:15px}
+  .rung .ds{color:var(--muted);font-size:13px;margin-left:auto;text-align:right}
+  .rung.done{opacity:1;border-color:#1f4a39;background:linear-gradient(180deg,#0e211a,#0c1a15)}
+  .rung.done .nm::before{content:"✓ ";color:var(--green)}
+  .rung.here{opacity:1;border-color:#5566f0;background:linear-gradient(180deg,#171c33,#11142a);box-shadow:0 4px 18px rgba(85,102,240,.25)}
+  .rung.here .nm::after{content:" ◀ you are here";color:var(--indigo);font-weight:600;font-size:12px}
+  .rung.target{opacity:1;border-color:#5a431f;background:linear-gradient(180deg,#241b0e,#1b1509)}
+  .rung.target .nm::after{content:" ◁ target";color:var(--amber);font-weight:600;font-size:12px}
+
+  /* === FLIP FLASHCARDS === */
+  .deck{display:grid;gap:14px;grid-template-columns:repeat(2,1fr)}
+  @media(max-width:680px){.deck{grid-template-columns:1fr}}
+  .fcard{perspective:1200px;cursor:pointer;min-height:140px}
+  .fcard .inner{position:relative;width:100%;height:100%;min-height:140px;transition:transform .5s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
+  .fcard.flip .inner{transform:rotateY(180deg)}
+  .fcard .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:var(--radius);border:1px solid var(--line);padding:18px;display:flex;flex-direction:column;justify-content:center}
+  .fcard .front{background:linear-gradient(180deg,var(--panel),var(--bg2))}
+  .fcard .back{background:linear-gradient(180deg,#0e211a,#0c1a15);border-color:#1f4a39;transform:rotateY(180deg)}
+  .fcard .qlbl{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}
+  .fcard .front .qlbl{color:var(--violet)} .fcard .back .qlbl{color:var(--green)}
+  .fcard .qtext{font-size:15px;font-weight:650}
+  .fcard .atext{font-size:14px;color:var(--txt)}
+  .fcard .tap{position:absolute;bottom:10px;right:14px;font-size:11px;color:var(--faint)}
+
+  /* === PREDICT-THEN-REVEAL SELF-QUIZ === */
+  .quiz{display:grid;gap:14px}
+  .qitem{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+  .qitem .q{font-weight:650;font-size:15px;margin-bottom:10px}
+  .qitem .predict{font-size:12.5px;color:var(--faint);margin-bottom:10px}
+  .qitem .reveal-btn{border:1px solid #5a431f;background:#241b0e;color:var(--amber);font-weight:650;font-size:13px;padding:8px 14px;border-radius:9px;cursor:pointer;font-family:inherit;transition:.15s}
+  .qitem .reveal-btn:hover{background:#2e2210}
+  .qitem .answer{display:none;margin-top:12px;padding:12px 14px;border-radius:10px;background:#0e211a;border:1px solid #1f4a39;color:var(--txt);font-size:14px;animation:fade .25s ease}
+  .qitem.open .answer{display:block} .qitem.open .reveal-btn{display:none}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* directory tree (reusable for chunk outlines) */
+  .tree{font-family:var(--mono);font-size:13px;background:#0c0e15;border:1px solid var(--line);border-radius:12px;padding:18px;overflow:auto;line-height:1.7}
+  .tree .row{display:flex;gap:14px;align-items:baseline}
+  .tree .p{color:#cdd6f4;white-space:pre}
+  .tree .p .d{color:var(--indigo);font-weight:600}
+  .tree .p .key{color:var(--amber);font-weight:700}
+  .tree .note{color:var(--muted);font-size:12px;font-family:var(--sans)}
+
+  /* glossary */
+  .glossary{display:grid;gap:10px}
+  .gterm{display:grid;grid-template-columns:180px 1fr;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px}
+  @media(max-width:680px){.gterm{grid-template-columns:1fr}}
+  .gterm .term{font-family:var(--mono);font-weight:700;color:var(--cyan);font-size:13.5px}
+  .gterm .def{color:var(--muted);font-size:13.5px}
+
+  /* checklist (where you are / what's next) */
+  ul.check{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+  ul.check li{display:flex;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px;font-size:14px}
+  ul.check li .cb{color:var(--green);font-weight:800}
+  ul.check li code{font-size:12px}
+
+  /* === ONE-SENTENCE COMPRESSION BOX (teach-back gate) === */
+  .compress{background:linear-gradient(180deg,#241b0e,#1b1509);border:1px solid #5a431f;border-radius:var(--radius);padding:18px}
+  .compress .lbl{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-bottom:8px}
+  .compress p{margin:0 0 10px;color:var(--muted);font-size:14px}
+  .compress .blank{border:1px dashed #5a431f;border-radius:10px;padding:14px;color:var(--faint);font-style:italic;font-size:14px}
+
+  /* === PREV / NEXT PAGER (lesson sequencing) === */
+  .pager{display:flex;justify-content:space-between;gap:12px;margin-top:8px}
+  .pager a{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 16px;color:var(--txt);transition:.15s}
+  .pager a:hover{border-color:var(--indigo);background:var(--panel2)}
+  .pager a.next{text-align:right}
+  .pager a .dir{font-size:11px;color:var(--faint);display:block}
+  .pager a.disabled{opacity:.4;pointer-events:none}
+
+  /* === SVG GRAPHS (concept map / forgetting curve) === */
+  .gwrap{background:radial-gradient(700px 300px at 50% 0,#13182a,#0c0e15);border:1px solid var(--line);border-radius:var(--radius);padding:14px;overflow-x:auto}
+  .gwrap svg{width:100%;height:auto;display:block;min-width:680px}
+  .glegend{display:flex;flex-wrap:wrap;gap:16px;margin-top:14px;font-size:12.5px;color:var(--muted)}
+  .glegend span{display:inline-flex;align-items:center;gap:7px}
+  .glegend i{width:22px;height:0;border-top-width:2px;border-top-style:solid;display:inline-block}
+  .glegend .sw{width:12px;height:12px;border-radius:4px;border:1px solid;display:inline-block}
+  .hint{font-size:12px;color:var(--faint);margin-top:8px}
+  /* interactive concept map: add class="depgraph" to the <svg> */
+  .gnode{transition:opacity .18s}
+  .gnode rect{transition:filter .18s}
+  .gnode .nt{font-weight:750;font-size:13px;fill:var(--txt)}
+  .gnode .ns{font-size:10.5px;fill:var(--muted);font-family:var(--mono)}
+  .gedge{transition:opacity .18s}
+  .gedge text{font-family:var(--mono);fill:var(--faint);font-size:10px}
+  svg.hovering .gnode:not(.hot){opacity:.22}
+  svg.hovering .gedge:not(.hot){opacity:.1}
+  .hot rect{filter:drop-shadow(0 0 9px currentColor)}
+
+  footer{padding:40px 0 70px;color:var(--faint);font-size:13px;border-top:1px solid var(--line)}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:16px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .sw{width:12px;height:12px;border-radius:4px;display:inline-block}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <div class="brand"><span class="dot"></span>{{SUBJECT}}</div>
+  <!-- CROSS-PAGE nav: one <a> per page in the set; mark THIS page class="link on". -->
+  <a class="link on" href="index.html">Overview</a>
+  <a class="link" href="lesson-1.html">Lessons</a>
+  <a class="link" href="flashcards.html">Flashcards</a>
+  <a class="link" href="quiz.html">Self-quiz</a>
+  <a class="link" href="review.html">Review plan</a>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <div class="kick">{{CONCEPT / CODEBASE / PAPER}}</div>
+  <h1>{{SUBJECT}}</h1>
+  <p class="lede">{{ONE-PARAGRAPH CORE MENTAL MODEL — what to hold in your head.}}</p>
+  <div class="chips">
+    <span class="chip violet">Goal: <b>{{target Bloom level}}</b></span>
+    <span class="chip">{{# chunks}} chunks</span>
+    <span class="chip green">{{# flashcards}} cards</span>
+    <span class="chip amber">next review {{day}}</span>
+  </div>
+</div></header>
+
+<main>
+  <!-- ▼▼▼ BUILD SECTIONS HERE — copy markup from the COMPONENTS LIBRARY below ▼▼▼ -->
+
+</main>
+
+<footer><div class="wrap">
+  {{Provenance: subject __ · source __ · generated __ · target level __ · next review __.}}
+</div></footer>
+
+<script>
+  // Flashcard flip — click anywhere on a .fcard to flip it.
+  document.querySelectorAll('.fcard').forEach(c=>{
+    c.addEventListener('click',()=>c.classList.toggle('flip'));
+  });
+  // Predict-then-reveal — reveal a quiz answer only after the learner clicks.
+  function reveal(btn){ btn.closest('.qitem').classList.add('open'); }
+  // Concept-map hover-highlight. Works on any <svg class="depgraph">.
+  // Nodes: <g class="gnode" data-id="X">. Edges: <g class="gedge" data-from="X" data-to="Y">.
+  document.querySelectorAll('svg.depgraph').forEach(svg=>{
+    const edges=[...svg.querySelectorAll('.gedge')];
+    const nodes=[...svg.querySelectorAll('.gnode')];
+    const clear=()=>{ svg.classList.remove('hovering'); [...edges,...nodes].forEach(el=>el.classList.remove('hot')); };
+    nodes.forEach(n=>{
+      const id=n.dataset.id;
+      n.addEventListener('mouseenter',()=>{
+        svg.classList.add('hovering'); n.classList.add('hot');
+        edges.forEach(e=>{
+          if(e.dataset.from===id||e.dataset.to===id){
+            e.classList.add('hot');
+            const other=e.dataset.from===id?e.dataset.to:e.dataset.from;
+            const on=nodes.find(x=>x.dataset.id===other); if(on) on.classList.add('hot');
+          }
+        });
+      });
+      n.addEventListener('mouseleave',clear);
+    });
+  });
+  // Optional in-page scroll-spy: only applies to nav links that are #anchors.
+  // Cross-page links (index.html, lesson-1.html, …) are skipped — their "on" class is set statically.
+  const links=[...document.querySelectorAll('nav a.link')].filter(l=>l.getAttribute('href').startsWith('#'));
+  if(links.length){
+    const map=Object.fromEntries(links.map(l=>[l.getAttribute('href').slice(1),l]));
+    const obs=new IntersectionObserver((es)=>{
+      es.forEach(e=>{ if(e.isIntersecting){ links.forEach(l=>l.classList.remove('on')); const a=map[e.target.id]; if(a) a.classList.add('on'); }});
+    },{rootMargin:'-45% 0px -50% 0px'});
+    document.querySelectorAll('section[id]').forEach(s=>obs.observe(s));
+  }
+</script>
+
+<!-- ============================================================================
+COMPONENTS LIBRARY  —  copy what you need into <main>. This block never renders.
+
+== SECTION SHELL ==
+<section id="ID"><div class="wrap">
+  <h2>EYEBROW</h2>
+  <div class="h2title">Section heading</div>
+  <p class="sub">Optional one-line intro.</p>
+  ... section body ...
+</div></section>
+
+== PAGE-SET TABLE OF CONTENTS (on index.html — links to every page in the set) ==
+<div class="grid g3">
+  <a class="card" style="display:block" href="lesson-1.html"><div class="lbl">Lesson 1 · linchpin</div><h3 style="margin:6px 0 4px">{{Chunk title}}</h3><p>{{one line}}</p></a>
+  <a class="card" style="display:block" href="lesson-2.html"><div class="lbl">Lesson 2</div><h3 style="margin:6px 0 4px">{{Chunk title}}</h3><p>{{one line}}</p></a>
+  <a class="card" style="display:block" href="flashcards.html"><div class="lbl">Practice</div><h3 style="margin:6px 0 4px">Flashcards</h3><p>Interleaved retrieval deck.</p></a>
+  <a class="card" style="display:block" href="quiz.html"><div class="lbl">Calibrate</div><h3 style="margin:6px 0 4px">Self-quiz</h3><p>Predict, then reveal.</p></a>
+  <a class="card" style="display:block" href="review.html"><div class="lbl">Retain</div><h3 style="margin:6px 0 4px">Review plan</h3><p>Spacing schedule + where you are.</p></a>
+</div>
+
+== CORE MENTAL MODEL (callouts: info = what it is, fix = the analogy anchor) ==
+<div class="grid g2">
+  <div class="callout info"><div class="ic">🧠</div><div>
+    <h3 style="margin:0 0 6px">The core model</h3>
+    <p style="margin:0;color:var(--muted);font-size:14px">One paragraph a newcomer can hold in their head.</p>
+  </div></div>
+  <div class="callout fix"><div class="ic">🔗</div><div>
+    <h3 style="margin:0 0 6px">Anchor it to what you know</h3>
+    <p style="margin:0;color:var(--muted);font-size:14px">"It's like X you already understand, except…"</p>
+  </div></div>
+</div>
+
+== CHUNK OUTLINE (tree; .key = the linchpin chunk) ==
+<div class="tree">
+  <div class="row"><span class="p"><span class="key">1. Linchpin chunk</span></span><span class="note">understand this first — everything hangs on it</span></div>
+  <div class="row"><span class="p"><span class="d">2. Chunk</span></span><span class="note">depends on 1</span></div>
+  <div class="row"><span class="p"><span class="d">3. Chunk</span></span><span class="note">depends on 1, 2</span></div>
+</div>
+
+== CONCEPT MAP (interactive: hover a concept to isolate its prerequisites) ==
+   Wrap in .gwrap. Add class="depgraph" so the JS wires hover-highlight.
+   Nodes = concepts: <g class="gnode" data-id="X">; Edges = prerequisites: <g class="gedge" data-from="X" data-to="Y">.
+   Edge direction = "must understand FROM before TO". Linchpin node: amber stroke + style="color:#ffb454".
+   Lay nodes on a grid; node box ~150x60; node center = (x+75, y+30). Prerequisites toward the top/left, advanced ideas toward the bottom/right.
+<div class="gwrap">
+  <svg class="depgraph" viewBox="0 0 980 560" role="img" aria-label="Concept prerequisite map">
+    <defs>
+      <marker id="a-indigo" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7c8cff"/></marker>
+      <marker id="a-amber"  markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#ffb454"/></marker>
+    </defs>
+    <!-- EDGES first (render under nodes); direction = prerequisite → dependent -->
+    <g class="gedge" data-from="base" data-to="core">
+      <path d="M115,130 L115,240" stroke="#46507a" stroke-width="2" fill="none" marker-end="url(#a-indigo)"/>
+      <text x="122" y="190">enables</text>
+    </g>
+    <g class="gedge" data-from="core" data-to="adv">
+      <path d="M190,270 L290,270" stroke="#ffb454" stroke-width="2" fill="none" marker-end="url(#a-amber)"/>
+    </g>
+    <!-- NODES — linchpin gets amber stroke + style="color:#ffb454" so its hot-glow is amber -->
+    <g class="gnode" data-id="base"><rect x="40"  y="70"  width="150" height="60" rx="11" fill="#1a2040" stroke="#7c8cff" stroke-width="1.5" style="color:#7c8cff"/><text class="nt" x="115" y="95" text-anchor="middle">Prerequisite</text><text class="ns" x="115" y="113" text-anchor="middle">know first</text></g>
+    <g class="gnode" data-id="core"><rect x="40"  y="240" width="150" height="60" rx="11" fill="#241b0e" stroke="#ffb454" stroke-width="1.5" style="color:#ffb454"/><text class="nt" x="115" y="265" text-anchor="middle">Linchpin</text><text class="ns" x="115" y="283" text-anchor="middle">the key idea</text></g>
+    <g class="gnode" data-id="adv"><rect x="290" y="240" width="150" height="60" rx="11" fill="#1a2040" stroke="#7c8cff" stroke-width="1.5" style="color:#7c8cff"/><text class="nt" x="365" y="265" text-anchor="middle">Advanced</text><text class="ns" x="365" y="283" text-anchor="middle">builds on it</text></g>
+  </svg>
+</div>
+<div class="glegend">
+  <span><i style="border-color:#7c8cff"></i> prerequisite of</span>
+  <span><span class="sw" style="background:#241b0e;border-color:#ffb454"></span> linchpin (start here)</span>
+  <span><span class="sw" style="background:#1a2040;border-color:#7c8cff"></span> concept</span>
+</div>
+<div class="hint">Tip: hover a concept to see what it depends on and what depends on it.</div>
+
+== BLOOM PROGRESS LADDER (rung classes: done | here | target; leave plain if not yet reached) ==
+   Render bottom-up (remember at the bottom). Mark where the learner is (.here) and the goal (.target).
+<div class="bloom">
+  <div class="rung"><span class="lvl">L1</span><span class="nm">Remember</span><span class="ds">recall the terms &amp; facts</span></div>
+  <div class="rung done"><span class="lvl">L2</span><span class="nm">Understand</span><span class="ds">explain it in your own words</span></div>
+  <div class="rung here"><span class="lvl">L3</span><span class="nm">Apply</span><span class="ds">use it on a new problem</span></div>
+  <div class="rung target"><span class="lvl">L4</span><span class="nm">Analyze</span><span class="ds">break it down, compare cases</span></div>
+  <div class="rung"><span class="lvl">L5</span><span class="nm">Create</span><span class="ds">build something new with it</span></div>
+</div>
+
+== FLIP FLASHCARDS (click to flip; question front, answer back) ==
+<div class="deck">
+  <div class="fcard"><div class="inner">
+    <div class="face front"><div class="qlbl">Recall</div><div class="qtext">{{Question that forces production, not recognition.}}</div><span class="tap">tap to flip ↻</span></div>
+    <div class="face back"><div class="qlbl">Answer</div><div class="atext">{{The answer + one line on why.}}</div></div>
+  </div></div>
+  <div class="fcard"><div class="inner">
+    <div class="face front"><div class="qlbl">Recall</div><div class="qtext">{{Question.}}</div><span class="tap">tap to flip ↻</span></div>
+    <div class="face back"><div class="qlbl">Answer</div><div class="atext">{{Answer.}}</div></div>
+  </div></div>
+</div>
+
+== PREDICT-THEN-REVEAL SELF-QUIZ (commit a guess out loud, THEN reveal) ==
+<div class="quiz">
+  <div class="qitem">
+    <div class="q">{{Question — ideally one that requires applying, not reciting.}}</div>
+    <div class="predict">↳ Say your answer out loud before you reveal. Wrong guesses still help you learn.</div>
+    <button class="reveal-btn" onclick="reveal(this)">Reveal answer</button>
+    <div class="answer">{{The answer, with the reasoning — and the common misconception it corrects.}}</div>
+  </div>
+  <div class="qitem">
+    <div class="q">{{Question.}}</div>
+    <div class="predict">↳ Commit first.</div>
+    <button class="reveal-btn" onclick="reveal(this)">Reveal answer</button>
+    <div class="answer">{{Answer.}}</div>
+  </div>
+</div>
+
+== FORGETTING CURVE + SPACING SCHEDULE (SVG; dots = scheduled reviews lifting retention) ==
+   The grey curve decays; each review (vertical marker) resets it higher and flattens the next decay.
+   Place review markers at the x-positions of your planned days. y: 60=high retention, 300=low.
+<div class="gwrap">
+  <svg viewBox="0 0 940 360" role="img" aria-label="Forgetting curve with spaced reviews">
+    <defs>
+      <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7c8cff" stop-opacity=".25"/><stop offset="1" stop-color="#7c8cff" stop-opacity="0"/></linearGradient>
+    </defs>
+    <!-- axes -->
+    <line x1="60" y1="40" x2="60" y2="300" stroke="#2c3245"/><line x1="60" y1="300" x2="900" y2="300" stroke="#2c3245"/>
+    <text x="60" y="28" fill="#9aa3bd" font-size="11" text-anchor="middle">retention</text>
+    <text x="900" y="320" fill="#9aa3bd" font-size="11" text-anchor="end">time →</text>
+    <!-- decaying-then-reset retention curve (edit to match your schedule) -->
+    <path d="M60,60 Q150,120 230,150 L230,70 Q330,120 430,140 L430,72 Q560,118 690,135 L690,74 Q800,110 900,120"
+          fill="none" stroke="#7c8cff" stroke-width="2.5"/>
+    <!-- review markers: x = day position; label below -->
+    <g font-family="var(--mono)" font-size="11" text-anchor="middle">
+      <line x1="60"  y1="40" x2="60"  y2="300" stroke="#46d6a0" stroke-width="1.5" stroke-dasharray="3 4"/><circle cx="60"  cy="60"  r="5" fill="#46d6a0"/><text x="60"  y="318" fill="#46d6a0">day 1</text>
+      <line x1="230" y1="40" x2="230" y2="300" stroke="#46d6a0" stroke-width="1.5" stroke-dasharray="3 4"/><circle cx="230" cy="70"  r="5" fill="#46d6a0"/><text x="230" y="318" fill="#46d6a0">day 3</text>
+      <line x1="430" y1="40" x2="430" y2="300" stroke="#46d6a0" stroke-width="1.5" stroke-dasharray="3 4"/><circle cx="430" cy="72"  r="5" fill="#46d6a0"/><text x="430" y="318" fill="#46d6a0">day 7</text>
+      <line x1="690" y1="40" x2="690" y2="300" stroke="#46d6a0" stroke-width="1.5" stroke-dasharray="3 4"/><circle cx="690" cy="74"  r="5" fill="#46d6a0"/><text x="690" y="318" fill="#46d6a0">day 16</text>
+    </g>
+  </svg>
+</div>
+<div class="hint">Each review lifts retention and flattens the next drop. Put at least one review after a night's sleep.</div>
+
+== ONE-SENTENCE COMPRESSION BOX (the teach-back gate — close every lesson page with this) ==
+<div class="compress">
+  <div class="lbl">Say it in one sentence</div>
+  <p>Before moving on: explain this chunk to a beginner in a single sentence, out loud, without looking. If you can't compress it, you haven't got it yet — re-read the lesson.</p>
+  <div class="blank">"{{This ___ does ___ by ___ so that ___.}}"  ← your sentence goes here</div>
+</div>
+
+== PREV / NEXT PAGER (bottom of each lesson page; lessons in prerequisite order) ==
+<div class="pager">
+  <a class="prev" href="lesson-1.html"><span class="dir">← previous</span>{{Lesson 1 title}}</a>
+  <a class="next" href="lesson-3.html"><span class="dir">next →</span>{{Lesson 3 title}}</a>
+</div>
+<!-- first/last page: give the missing side class="disabled" and href="#" -->
+
+== GLOSSARY (domain terms) ==
+<div class="glossary">
+  <div class="gterm"><div class="term">Term</div><div class="def">Plain-language definition a newcomer needs.</div></div>
+</div>
+
+== WHERE YOU ARE / WHAT'S NEXT (calibration result + next steps) ==
+<div class="grid g2">
+  <div class="card"><div class="lbl">Calibration</div><p style="margin-top:6px">Predicted mastery <b style="color:var(--txt)">{{X%}}</b> · actual <b style="color:var(--txt)">{{Y%}}</b>. {{Honest one-liner on the gap.}}</p></div>
+  <div class="card"><div class="lbl">Solid vs shaky</div><p style="margin-top:6px">Solid: {{chunks}}. Needs another pass: <span style="color:var(--amber)">{{chunks}}</span>.</p></div>
+</div>
+<ul class="check" style="margin-top:14px">
+  <li><span class="cb">1</span><div>Review the shaky chunks first on <code>day 1</code>.</div></li>
+  <li><span class="cb">2</span><div>Re-invoke this skill in "review session" mode on <code>day 3</code> to run the spaced quiz.</div></li>
+  <li><span class="cb">3</span><div>Transfer task: {{apply it to a novel / your-own problem}}.</div></li>
+</ul>
+
+============================================================================ -->
+</body>
+</html>

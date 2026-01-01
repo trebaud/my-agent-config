@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Typosquat scan: {{TARGET}}</title>
+<style>
+:root { color-scheme: light dark; }
+body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+h1 { margin-bottom: 0.2rem; }
+.meta { color: #888; margin-bottom: 1.5rem; font-size: 0.9em; }
+table { border-collapse: collapse; margin: 0.5rem 0 1.5rem; }
+th, td { padding: 4px 10px; text-align: left; border-bottom: 1px solid #8884; }
+th { background: #8881; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.95em; }
+.priority { margin: 0.5rem 0 1.5rem; padding: 0.8rem 1rem; background: #f9a8261a; border-left: 3px solid #f9a826; border-radius: 4px; }
+.priority h2 { margin-top: 0; }
+.priority .item { margin: 0.6rem 0; }
+.priority .reason { color: #888; font-size: 0.9em; display: block; margin: 0.1rem 0 0.2rem; }
+.priority .tag { display: inline-block; font-size: 0.75em; font-weight: 600; padding: 1px 6px; border-radius: 3px; background: #f9a826; color: #000; margin-right: 0.4rem; vertical-align: 1px; }
+.priority .rollup { color: #666; font-size: 0.9em; margin-top: 0.8rem; }
+.cluster { margin: 0.5rem 0 1rem; padding: 0.5rem 0.8rem; background: #8881; border-radius: 6px; }
+.cluster h3 { margin: 0 0 0.4rem; font-size: 1em; }
+.row { display: grid; grid-template-columns: 1fr 200px 1fr auto; gap: 0.8rem; padding: 2px 0; align-items: baseline; }
+.row .tech { color: #888; font-size: 0.9em; }
+.mx { color: #b04; font-weight: 600; font-size: 0.85em; }
+.http { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85em; color: #666; margin: 0 0 0.2rem 0; padding-left: 0; }
+.http .ok { color: #2a7; font-weight: 600; }
+.http .redir { color: #b80; font-weight: 600; }
+.http .err { color: #a33; font-weight: 600; }
+.http .sep { color: #8884; margin: 0 0.4rem; }
+.state-tag { display: inline-block; font-size: 0.7em; font-weight: 700; letter-spacing: 0.04em; padding: 1px 6px; border-radius: 3px; margin-left: 0.4rem; vertical-align: 1px; }
+.state-LIVE { background: #d11; color: #fff; }
+.state-REDIRECT_OFFSITE { background: #b80; color: #fff; }
+.state-REDIRECT_TO_TARGET { background: #468; color: #fff; }
+.state-BLOCKED { background: #8a6; color: #fff; }
+.state-SERVER_ERROR { background: #888; color: #fff; }
+.state-NO_HTTP { background: #555; color: #fff; }
+.state-OTHER { background: #666; color: #fff; }
+/* Browser-verified content states. These override the HTTP states above when
+   present, so they are visually louder. */
+.state-FLAGGED_PHISHING { background: #7b0f0f; color: #fff; }
+.state-LIVE_CLONE { background: #d11; color: #fff; }
+.state-OFFSITE_REDIRECT { background: #b80; color: #fff; }
+.state-EXPIRED_HOST { background: #a0522d; color: #fff; }
+.state-UNPROVISIONED { background: #557; color: #fff; }
+.state-BLANK { background: #667; color: #fff; }
+.state-BRAND_REDIRECT { background: #468; color: #fff; }
+.state-PARKED { background: #6a6a6a; color: #fff; }
+.state-ERROR { background: #555; color: #fff; }
+.nohttps { display: inline-block; font-size: 0.7em; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+           background: #444; color: #ffd; margin-left: 0.3rem; vertical-align: 1px; }
+.evidence { color: #777; font-size: 0.85em; margin: 0.1rem 0 0.3rem; }
+.evidence code { background: #8881; padding: 0 3px; border-radius: 2px; }
+.plainlist { background: #8881; border-radius: 6px; padding: 0.7rem 0.9rem; margin: 0.5rem 0 1.5rem;
+             font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em;
+             white-space: pre; overflow-x: auto; }
+.fp { color: #777; font-size: 0.9em; }
+.links { font-size: 0.85em; margin: 0 0 0.5rem 0; padding-left: 0; color: #888; }
+.links a { margin-right: 0.6rem; text-decoration: none; }
+.links a:hover { text-decoration: underline; }
+.transition { padding: 4px 0; }
+.transition .arrow { color: #888; }
+.transition .new { font-weight: 600; }
+.notes { color: #666; font-size: 0.9em; border-top: 1px solid #8884; padding-top: 1rem; margin-top: 2rem; }
+.notes li { margin: 0.3rem 0; }
+</style></head><body>
+<h1>Typosquat scan: <code>{{TARGET}}</code></h1>
+<div class="meta">Generated {{LAST_RUN}} — run #{{RUN_COUNT}}</div>
+
+<h2>Summary</h2>
+<table>
+<tr><th>Metric</th><th class="num">Count</th></tr>
+<tr><td>Candidates tracked</td><td class="num">{{STATS_TOTAL}}</td></tr>
+<tr><td>Resolving (registered, DNS active)</td><td class="num">{{STATS_RESOLVING}}</td></tr>
+<tr><td>Unregistered (NXDOMAIN — available)</td><td class="num">{{STATS_UNREGISTERED}}</td></tr>
+<tr><td>Lookup errors (retry next run)</td><td class="num">{{STATS_ERRORS}}</td></tr>
+</table>
+
+<div class="priority">
+<h2>Recommended next steps</h2>
+{{PRIORITY_BLOCK}}
+</div>
+<!-- PRIORITY_BLOCK: one short headline <p> followed by up to 5 priority items
+     and (optionally) a rollup line for cluster members not enumerated.
+
+     Headline:
+       <p><strong>{N} high-priority items this run.</strong></p>
+
+     Per item (cap 5; ordered by the HTTP-aware priority rubric in report_template.md):
+       <div class="item">
+         <span class="tag">{Fresh registration | LIVE singleton | REDIRECT_OFFSITE | NO_HTTP + MX | BLOCKED singleton | REDIRECT_TO_TARGET | Cluster + LIVE | Cluster + MX}</span>
+         <code>{candidate}</code> → <code>{ip}</code>
+         <span class="tech">({technique})</span>
+         <span class="mx">{[MX] or empty}</span>
+         <span class="state-tag state-{HTTP_STATE}">{HTTP_STATE}</span>
+         <span class="reason">{one-line reason; include https=code and final-URL host when relevant}</span>
+         <span class="links">
+           <a href="https://{candidate}" target="_blank" rel="noopener noreferrer">visit</a>
+           <a href="https://crt.sh/?q={urlenc:candidate}" target="_blank" rel="noopener noreferrer">crt.sh</a>
+           <a href="https://www.virustotal.com/gui/domain/{urlenc:candidate}/detection" target="_blank" rel="noopener noreferrer">VT</a>
+           <a href="https://urlscan.io/domain/{urlenc:candidate}" target="_blank" rel="noopener noreferrer">urlscan</a>
+           <a href="https://who.is/whois/{urlenc:candidate}" target="_blank" rel="noopener noreferrer">whois</a>
+         </span>
+       </div>
+
+     HTTP_STATE values (use the exact spelling — they map to .state-* CSS classes):
+       LIVE, REDIRECT_OFFSITE, REDIRECT_TO_TARGET, BLOCKED, SERVER_ERROR, NO_HTTP, OTHER
+
+     Rollup (only if cluster members weren't enumerated above):
+       <div class="rollup">{M} other resolving candidates sit in parking-provider clusters (see below).</div>
+
+     If zero resolving candidates: <p><em>No resolving candidates this run — nothing to action.</em></p>
+-->
+
+<h2>Actionable names</h2>
+<p>Copy straight into a ticket, blocklist, or abuse form. Parking, brand redirects, and known false positives are excluded.</p>
+<div class="plainlist">{{PLAIN_LIST}}</div>
+<!-- PLAIN_LIST: newline-separated FQDNs, HTML-escaped, no markup, priority order.
+     If empty: the string "(none)". -->
+
+<h2>Same-operator fingerprints</h2>
+{{FINGERPRINTS_BLOCK}}
+<!-- FINGERPRINTS_BLOCK: a <ul> of correlations with their evidence (kit titles,
+     shared origin IPs, third-party asset hosts, registrar/NS tuples, and which
+     brand each kit currently impersonates). Omit the <h2> and this block when
+     nothing correlates. -->
+
+<h2>Known false positives</h2>
+{{FALSE_POSITIVES_BLOCK}}
+<!-- FALSE_POSITIVES_BLOCK: <div class="fp"> per row carrying verdict FALSE_POSITIVE,
+     as <code>candidate</code> → <code>ip</code> — verdict_note. Recorded so later
+     runs do not re-escalate them. Omit the <h2> and this block when empty. -->
+
+<h2>Resolving candidates ({{STATS_RESOLVING}})</h2>
+<p>Grouped by <code>/24</code> so parking-provider clusters collapse into a single block. <span class="mx">[MX]</span> means the name can receive email. Each row carries quick-test links — click through to triage.</p>
+{{RESOLVING_BLOCK}}
+<!-- RESOLVING_BLOCK shape per cluster:
+  Each row gets the .row line, then a .http probe line, then a .links line.
+
+  Singleton:
+    <div class="row">
+      <code>{candidate}</code>
+      <code>{ip}</code>
+      <span class="tech">{technique}</span>
+      <span class="mx">{[MX] or empty}</span>
+      <span class="state-tag state-{HTTP_STATE}">{HTTP_STATE}</span>
+    </div>
+    <div class="http">{HTTP_LINE}</div>
+    <div class="links">…five quick-test links…</div>
+
+  Multi:
+    <div class="cluster"><h3>Cluster {ip}/24 — {n} names on shared infrastructure</h3>
+      <div class="row">…</div>
+      <div class="http">…</div>
+      <div class="links">…</div>
+      <div class="row">…</div>
+      <div class="http">…</div>
+      <div class="links">…</div>
+    </div>
+
+  HTTP_LINE rendering (URL-encode candidate for href attrs; HTML-escape all text):
+    - Both probes present and successful:
+        https=<span class="ok">200</span> (self) <span class="sep">·</span> http=<span class="redir">301</span> → <code>{final_host}</code>
+    - Probe error: https=<span class="err">timeout</span> (use the probe's `error` field verbatim, HTML-escaped)
+    - 2xx → wrap status in <span class="ok">
+    - 3xx → wrap status in <span class="redir">
+    - 4xx/5xx → wrap status in <span class="err">
+    - When `final_url` host == candidate, append " (self)"; otherwise append " → <code>{final_host}</code>"
+    - If a probe object is missing (older memory file row, or status != resolves), omit the entire <div class="http"> for that row.
+
+  If no resolving rows: <p><em>None.</em></p>
+-->
+
+<h2>Status transitions this run ({{N_TRANSITIONS}})</h2>
+{{TRANSITIONS_BLOCK}}
+<!-- TRANSITIONS_BLOCK: omit the whole <h2> + this block when N_TRANSITIONS == 0.
+     Otherwise one transition per row:
+       <div class="transition">
+         <code>{candidate}</code>: {prev or "new"} <span class="arrow">→</span>
+         <span class="new">{status}</span> <span class="mx">{[MX] or empty}</span>
+         <span class="state-tag state-{HTTP_STATE}">{HTTP_STATE}</span>
+       </div>
+       <div class="http">…probe line, same format as RESOLVING_BLOCK…</div>
+       <div class="links">…five quick-test links…</div>
+     Only emit the .http and .links rows when the new status is `resolves`.
+     The state-tag is also only emitted when status is `resolves`.
+-->
+
+<h2>By technique</h2>
+<table>
+<tr><th>Technique</th><th class="num">Total</th><th class="num">Resolving</th><th class="num">Unregistered</th><th class="num">Errors</th></tr>
+{{TECHNIQUE_ROWS}}
+<!-- one <tr><td>tech</td><td class="num">N</td>…</tr> per technique, sorted resolving desc / total desc / name asc -->
+</table>
+
+<div class="notes"><strong>Notes</strong>
+<ul>
+<li><code>resolves</code> ≠ active squatter. Most resolving lookalikes are registrar parking pages or CDN catch-alls. Triage out-of-band (WHOIS, TLS cert SAN, reverse DNS, CT-log history).</li>
+<li><strong>An HTTP 200 is not a live site.</strong> Rows carrying a browser content state were rendered in real Chromium; that state overrides the status-code reading. Rows without one may misreport parking pages as live and miss client-rendered kits entirely.</li>
+<li><span class="nohttps">NO-HTTPS</span> means no TLS listener on <code>:443</code>. Browsers try HTTPS first, so these names fail for real visitors even when <code>curl http://</code> returns 200 — the usual reason a flagged link "doesn't work in a browser".</li>
+<li><span class="mx">[MX]</span> on a resolving candidate is a stronger phishing/mail-interception signal than HTTP-only.</li>
+<li><code>cloudflare</code> on a row means the origin IP is shielded: file abuse with Cloudflare. A real <code>server</code> header with no <code>cf-ray</code> means the hosting provider is directly reachable — action those first.</li>
+<li>A squat impersonating a <em>different</em> brand is still a squat on this brand's typo traffic and can be repointed in minutes. It is not a false positive.</li>
+<li>The system resolver was used. Behind split-horizon DNS, results may differ from an external view.</li>
+</ul></div>
+</body></html>
